@@ -2,8 +2,9 @@ name: test
 on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04            # ubuntu-latest 26.04: Python 3.9 yok (27.10)
     strategy:
+      fail-fast: false
       matrix:
         python: ["3.9", "3.12"]
     env:
