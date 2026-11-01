@@ -131,12 +131,14 @@ aktarıldı; aktarımın sesi değiştirmediği sınandı (log-mel farkı, model
 
 - **Kod:** MIT ([LICENSE](LICENSE)).
 - **Model ağırlıkları ve sesler:** CC BY-SA 4.0. Türkçe PL-BERT Vikipedi metniyle eğitildi; öğretmen VoxCPM2
-  Apache-2.0, StyleTTS2 MIT.
+  Apache-2.0, StyleTTS2 MIT. Telaffuz için yardımcı veri olarak YODAS2 Türkçe kesitleri (Creative Commons lisanslı
+  YouTube videoları, CC BY 3.0; Li vd. 2023, "YODAS: YouTube-Oriented Dataset for Audio and Speech") kullanıldı;
+  seslerin hiçbiri bu konuşmacılardan değildir, hepsi öğretmenin tarif tasarımıdır.
 - **Kullanım koşulu (öğretmen modelin ve StyleTTS2'nin koşullarından):**
   - Üretilen sesin yapay zekâ sesi olduğu dinleyiciye belirtilmelidir.
   - Gerçek bir kişiyi taklit etmek, dolandırıcılık ve dezenformasyon için kullanmak yasaktır.
 
-Ticari ürün sesleri, özel ses tasarımı, stüdyo arayüzü ve kurum içi kurulum: Seslen ([iletişim](https://github.com/seslen-tr)).
+Bütün ayarlarıyla stüdyo (16 ses, özdenetim, öğretmen kaydı): [Seslen](https://github.com/seslen-tr/seslen) (MIT).
 
 ## Düzen ve testler
 

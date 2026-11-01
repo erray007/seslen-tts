@@ -100,7 +100,9 @@ Duygular: nötr, neşeli, heyecan, uyarı, merak, özür, üzgün, kızgın, fı
 ## Lisans ve kullanım koşulları
 
 - **Ağırlıklar ve sesler:** CC BY-SA 4.0 (Türkçe PL-BERT'in Vikipedi kaynaklı lisansı). Öğretmen VoxCPM2
-  Apache-2.0; StyleTTS2 MIT. Paket kodu: MIT.
+  Apache-2.0; StyleTTS2 MIT. Paket kodu: MIT. Telaffuz için yardımcı veri: YODAS2 Türkçe kesitleri (Creative
+  Commons lisanslı YouTube videoları, CC BY 3.0; Li vd. 2023, "YODAS: YouTube-Oriented Dataset for Audio and
+  Speech"). Seslerin hiçbiri bu konuşmacılardan değildir; hepsi öğretmenin tarif tasarımıdır.
 - **Kullanım koşulları:**
   - Üretilen sesin yapay zekâ sesi olduğu dinleyiciye belirtilmelidir.
   - Gerçek bir kişiyi taklit etmek, dolandırıcılık ve dezenformasyon için kullanmak yasaktır.
