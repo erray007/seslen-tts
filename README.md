@@ -1,7 +1,7 @@
 # seslen-tts
 
-> **English:** An open Turkish text-to-speech model that runs on CPU, without PyTorch and without internet: 6 voices × 9
-> emotions, correct Turkish lexical stress and question intonation, automatic emotion per sentence and reading style per
+> **English:** An open Turkish text-to-speech model that runs on CPU, without PyTorch and without internet: 16 voices × 9
+> emotions (adult, young, elderly, child and cartoon voices), correct Turkish lexical stress and question intonation, automatic emotion per sentence and reading style per
 > text. ONNX Runtime only (~330 MB model, downloaded from Hugging Face on first use). Real-time factor ≈ 0.2–0.4 on a
 > laptop CPU.
 
@@ -21,7 +21,8 @@ seslen-tts --sesler
 
 ## Neler yapar
 
-- **6 ses, 9 duygu:** nötr, neşeli, heyecan, uyarı, merak, özür, üzgün, kızgın, fısıltı.
+- **16 ses, 9 duygu:** yetişkin, genç, yaşlı, çocuk ve çizgi karakter sesleri; nötr, neşeli, heyecan, uyarı,
+  merak, özür, üzgün, kızgın, fısıltı.
 - **Türkçe vurgu doğru okunur:** "ANkara", "geLİyor", "GELmedi". Okunuş [turkce-vurgu](https://github.com/seslen-tr/turkce-vurgu)
   ile çıkarılır; sayılar, tarihler, saatler, para ve kısaltmalar [turkce-normalize](https://github.com/seslen-tr/turkce-normalize)
   ile okunur hâle gelir ("14:30'da" → "on dört otuzda").
@@ -61,12 +62,25 @@ Windows'ta enerji kısıtını kaldırma `SESLEN_TTS_SUREC=0` ile kapatılır. �
 
 | Ses | Kim | Doğallık (UTMOS) |
 |---|---|---|
-| `ayse` | olgun kadın (~45), orta-kalın, güven veren | 3,89 |
-| `koca` | iri kalın dev, gürleyen ama sevimli (çizgi karakter) | 3,89 |
-| `hasan` | yaşlı erkek (~72), kalın, bilge dede | 3,26 |
-| `zeynep` | genç kız (~17), ince, canlı | 3,25 |
-| `emre` | genç erkek (~18), orta, enerjik | 2,87 |
-| `fatma` | yaşlı kadın (~70), ince, şefkatli nine | 2,38 |
+| `nehir` | genç kadın, net ve canlı | 3,08 |
+| `ege` | genç erkek, derin ve sıcak | 3,82 |
+| `ayse` | olgun kadın (~45), orta-kalın, güven veren | 4,01 |
+| `serdar` | olgun erkek (~45), kalın, otoriter ama dost | 3,46 |
+| `zeynep` | genç kız (~17), ince, canlı | 3,41 |
+| `emre` | genç erkek (~18), orta, enerjik | 2,91 |
+| `selin` | genç kadın, yumuşak | 3,06 |
+| `fatma` | yaşlı köylü nine (~78), alçak, hırıltılı, şefkatli | 2,51 |
+| `hasan` | yaşlı erkek (~70), bariton, bilge dede | 3,47 |
+| `elif` | kız çocuk (~8) | 2,21 |
+| `can` | erkek çocuk (~9) | 1,29 |
+| `ece` | küçük kız, çok ince | 1,86 |
+| `pitircik` | minik sevimli yaratık, çok ince tiz (çizgi karakter) | 1,33 |
+| `koca` | iri kalın dev, gürleyen ama sevimli (çizgi karakter) | 3,90 |
+| `firfir` | kurnaz tilki, burnundan, cilveli (çizgi karakter) | 2,59 |
+| `kara` | kötü büyücü, kısık hırıltılı, dramatik (çizgi karakter) | 1,80 |
+
+UTMOS yetişkin konuşmasıyla eğitildi: çocuk ve çizgi karakter seslerini (çok ince, hırıltılı) düşük puanlar; bu
+seslerde puan kaliteden çok sesin alışılmadık olmasını gösterir.
 
 Örnek sesler: [Hugging Face model sayfası](https://huggingface.co/seslen-tr/seslen-tts/tree/main/ornekler).
 
@@ -103,9 +117,10 @@ Varsayılanlar: ses `zeynep`, ton ve üslup `otomatik`, çıktı `seslen.wav`. `
 
 ## Ölçümler
 
-- **Okunuş denetimi** (Türkçe wav2vec2 CTC + sözcük başına GOP, 6 ses × 14 cümle; sayı, saat ve para dahil): 84
-  cümlede 1 sözcük hatası (Hasan: "aradığın" → "aradığım").
-- **Doğallık:** UTMOS 2,4–3,9 (tablo; 6 ses × 14 cümle, paketin kendi yoluyla). UTMOS İngilizce dinleyicilerle eğitildi; Türkçe vurguyu yargılayamaz,
+- **Okunuş denetimi** (Türkçe wav2vec2 CTC + sözcük başına GOP, 16 ses × 14 cümle; sayı, saat ve para dahil): 224
+  cümlede 6 sözcük hatası; dördü aynı ünlü ("başvurunuzu" → "başvurunuzı").
+- **Doğallık:** UTMOS yetişkin seslerde 2,5–4,0, çocuk ve çizgi seslerinde 1,3–3,9 (tablo; 16 ses × 14 cümle,
+  paketin kendi yoluyla). UTMOS İngilizce dinleyicilerle eğitildi; Türkçe vurguyu yargılayamaz,
   yapaylığı yakalar.
 - **Hız** (i7-12700H, 6 iş parçacığı): gerçek zaman oranı ≈ 0,2–0,4. Yani 5 saniyelik cümle 1–2 saniyede üretilir.
   Windows'un arka plan süreçlerine uyguladığı enerji kısıtı paket tarafından kapatılır (yoksa 4–5 kat yavaşlıyordu).

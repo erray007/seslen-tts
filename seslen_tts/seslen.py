@@ -2,7 +2,8 @@
 """
 SESLEN — metni cümle cümle, duygusu ve üslubuyla seslendirir.
 
-  ses      6 ses: ayse, zeynep, emre, fatma, hasan, koca (Seslen.sesler)
+  ses      16 ses (Seslen.sesler): nehir, ege, ayse, serdar, zeynep, emre, selin, fatma, hasan, elif, can, ece,
+           pitircik, koca, firfir, kara
   ton      "otomatik" (her cümleye turkce-duygu karar verir) ya da notr, neseli, heyecan, uyari, merak, ozur,
            uzgun, kizgin, fisilti (bütün metin o tonda)
   uslup    "otomatik" (turkce-uslup metnin türünü bulur: haber, masal, talimat…) ya da üslup adı; hız, ezgi

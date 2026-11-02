@@ -15,7 +15,7 @@ from pathlib import Path
 
 DEPO = os.environ.get("SESLEN_TTS_HF", "seslen-tr/seslen-tts")
 DOSYALAR = ["metin.onnx", "ses.onnx", "stiller.npz", "sesler.json", "semboller.json"]
-URUN_SESLERI = {"damla", "kuzey"}           # hiçbir açık depoya girmez
+URUN_SESLERI = {"damla", "kuzey"}           # Seslen'in yerel ürün sesi adları: açık modelde geçmez
 
 
 def main() -> None:

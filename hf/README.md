@@ -8,7 +8,7 @@ tags: [turkish, tts, text-to-speech, styletts2, onnx, cpu, emotion]
 
 # Seslen TTS — açık Türkçe ses modeli
 
-> **English:** Turkish text-to-speech that runs on CPU with ONNX Runtime only (no PyTorch): 6 voices × 9 emotions,
+> **English:** Turkish text-to-speech that runs on CPU with ONNX Runtime only (no PyTorch): 16 voices × 9 emotions (adult, young, elderly, child and cartoon voices),
 > correct Turkish lexical stress and question intonation. StyleTTS2 student distilled from VoxCPM2-generated data
 > (designed voices, not real people). Use with the [seslen-tts](https://github.com/seslen-tr/seslen-tts) Python package.
 
@@ -52,13 +52,63 @@ Her cümlenin duygusu ayrı seçildi. Metin olduğu gibi verildi: saat, sayı ve
 
 <audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/koca.wav"></audio>
 
+**Nehir** · genç kadın · ton otomatik
+> Merhaba, ben Nehir. Toplantınız saat 14:00'te başlıyor; dosyaları sizin için hazırladım.
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/nehir.wav"></audio>
+
+**Ege** · genç erkek, derin ve sıcak · ton otomatik
+> Merhaba, ben Ege. Bu akşam size sakin bir yolculuğun hikâyesini anlatacağım.
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/ege.wav"></audio>
+
+**Serdar** · olgun erkek · ton otomatik
+> Arkadaşlar, toplantıya başlıyoruz. Lütfen telefonlarınızı sessize alın.
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/serdar.wav"></audio>
+
+**Selin** · genç kadın, yumuşak · ton otomatik
+> Bugün kendine biraz zaman ayır. Derin bir nefes al ve rahatla.
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/selin.wav"></audio>
+
+**Elif** · kız çocuk · ton otomatik
+> Anne, bak! Bahçede kocaman bir kelebek var! Yakalayabilir miyim?
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/elif.wav"></audio>
+
+**Can** · erkek çocuk · ton otomatik
+> Bugün okulda resim yaptık. Benimki en güzeliydi, öğretmenim de çok beğendi!
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/can.wav"></audio>
+
+**Ece** · küçük kız · ton otomatik
+> Bu oyuncak ayı benim en iyi arkadaşım. Adı Pamuk.
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/ece.wav"></audio>
+
+**Pıtırcık** · minik yaratık (çizgi karakter) · ton otomatik
+> Yaşasın! Bugün ormanda kocaman bir şenlik var! Sen de gelecek misin?
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/pitircik.wav"></audio>
+
+**Fırfır** · kurnaz tilki (çizgi karakter) · ton otomatik
+> Ay, ne kadar da güzel bir peynir o öyle. Bana biraz versene, dostum?
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/firfir.wav"></audio>
+
+**Kara** · kötü büyücü (çizgi karakter) · ton otomatik
+> Sonunda büyülü kitap benim elimde! Artık kimse beni durduramaz!
+
+<audio controls src="https://huggingface.co/seslen-tr/seslen-tts/resolve/main/ornekler/kara.wav"></audio>
+
 ## Dosyalar
 
 | Dosya | İçerik |
 |---|---|
 | `metin.onnx` (78 MB) | metin kodlayıcı + Türkçe PL-BERT + süre tahmini: işaretler (1, L) + stil (1, 256) → d, t_en, süre |
 | `ses.onnx` (247 MB) | çözücü (iSTFTNet): hizalanmış özellikler + stil + perde/tonlama + soru ezgisi → 24 kHz dalga |
-| `stiller.npz` | 6 ses × 9 duygu stil vektörü (256 boyut) |
+| `stiller.npz` | 16 ses × 9 duygu stil vektörü (256 boyut) |
 | `sesler.json`, `semboller.json` | ses bilgileri; okunuş karakteri → işaret numarası |
 | `ornekler/*.wav` | her sesten bir örnek |
 
@@ -69,16 +119,29 @@ klasöre koyup `SESLEN_TTS_MODEL` ortam değişkeniyle ya da `Seslen(klasor="...
 
 | Ses | Kim | UTMOS |
 |---|---|---|
-| ayse | olgun kadın, güven veren | 3,89 |
-| koca | iri kalın dev (çizgi karakter) | 3,89 |
-| hasan | yaşlı erkek, bilge dede | 3,26 |
-| zeynep | genç kız, ince, canlı | 3,25 |
-| emre | genç erkek, enerjik | 2,87 |
-| fatma | yaşlı kadın, şefkatli nine | 2,38 |
+| nehir | genç kadın, net ve canlı | 3,08 |
+| ege | genç erkek, derin ve sıcak | 3,82 |
+| ayse | olgun kadın, güven veren | 4,01 |
+| serdar | olgun erkek, otoriter ama dost | 3,46 |
+| zeynep | genç kız, ince, canlı | 3,41 |
+| emre | genç erkek, enerjik | 2,91 |
+| selin | genç kadın, yumuşak | 3,06 |
+| fatma | yaşlı kadın, şefkatli nine | 2,51 |
+| hasan | yaşlı erkek, bilge dede | 3,47 |
+| elif | kız çocuk (~8) | 2,21 |
+| can | erkek çocuk (~9) | 1,29 |
+| ece | küçük kız, çok ince | 1,86 |
+| pitircik | minik sevimli yaratık (çizgi karakter) | 1,33 |
+| koca | iri kalın dev (çizgi karakter) | 3,90 |
+| firfir | kurnaz tilki (çizgi karakter) | 2,59 |
+| kara | kötü büyücü (çizgi karakter) | 1,80 |
+
+UTMOS yetişkin konuşmasıyla eğitildi; çocuk ve çizgi karakter seslerinde düşük puan kaliteden çok sesin
+alışılmadık olmasını gösterir.
 
 Duygular: nötr, neşeli, heyecan, uyarı, merak, özür, üzgün, kızgın, fısıltı.
 
-- Okunuş denetimi (Türkçe wav2vec2 CTC, 6 ses × 14 cümle): 84 cümlede 1 sözcük hatası (Hasan: "aradığın" → "aradığım").
+- Okunuş denetimi (Türkçe wav2vec2 CTC, 16 ses × 14 cümle): 224 cümlede 6 sözcük hatası; dördü aynı ünlü ("başvurunuzu" → "başvurunuzı").
 - Hız (i7-12700H, 6 iş parçacığı): gerçek zaman oranı ≈ 0,2–0,4.
 
 ## Eğitim

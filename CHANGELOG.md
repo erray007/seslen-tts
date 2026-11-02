@@ -1,5 +1,12 @@
 # Değişiklikler
 
+## 0.3.0 — 16 ses
+
+- Açık model 6 sesten 16 sese çıktı: yeni sesler Nehir, Ege, Serdar, Selin (yetişkin ve genç), Elif, Can, Ece
+  (çocuk), Pıtırcık, Fırfır, Kara (çizgi karakter). Ağırlıklar 0.2'dekiyle aynı (Seslen t10); yalnız `stiller.npz`
+  ve `sesler.json` büyüdü. Eski paket sürümleri de yeni sesleri kullanabilir.
+- Ölçüm (paketin kendi yoluyla, 16 ses × 14 cümle): okunuş denetiminde 224 cümlede 6 sözcük hatası.
+
 ## 0.2.1 — kısa cümle
 
 - Tek başına 1-2 sözcüklük cümle ("Evet.", "Eyvah!", "dedi.") arkasına taşıyıcı cümle eklenerek üretilir, ses son
