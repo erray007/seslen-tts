@@ -193,9 +193,10 @@ def duraklari_ayir(sure: np.ndarray, kod: list[int], durak: dict[int, tuple[int,
 def sessizlik_ekle(w: np.ndarray, sure: np.ndarray, duraklar: list[tuple[int, int]], son: int = 0,
                    pay: int = SON_PAY) -> np.ndarray:
     """Dalga: son > 0 ise son harften (işaret sırası son) pay birim sonra kesilir, son birimde söner; duraklar
-    noktalamanın ilk biriminden sonra sessizlik olarak eklenir (önceki sözcüğün bırakışı önde, sonraki sözcüğe
-    hazırlık arkada kalır; noktalamanın sonuna eklenince tanıyıcı "rrögar", "hhedef" duyuyordu). Kenarlarda GECIS
-    örnek sönüm / açılım."""
+    noktalamanın başına (önceki sözcüğün bitişine) sessizlik olarak eklenir: model sonraki sözcüğe noktalama
+    içinde hazırlanıyor, sessizlik sonra gelince sözcüğün başı iki kez duyuluyordu ("yyetmiş", "rrögar"; 4 ses × 7
+    cümle × 2 okumada CTC birebir: noktalamanın sonu 0/56, ilk biriminden sonra 4/56, başı 11/56, 04.11.2026).
+    Kenarlarda GECIS örnek sönüm / açılım."""
     sinir = np.cumsum(sure) * ORNEK_BIRIM                  # her işaretin bittiği örnek
     w = np.array(w, dtype=np.float32)
     if son:
@@ -204,7 +205,7 @@ def sessizlik_ekle(w: np.ndarray, sure: np.ndarray, duraklar: list[tuple[int, in
         w[len(w) - n:] *= np.linspace(1, 0, n, dtype=w.dtype)
     parca, bas = [], 0
     for i, birim in duraklar:
-        p = int(sinir[i - 1]) + min(int(sure[i]), 1) * ORNEK_BIRIM
+        p = int(sinir[i - 1])
         if p >= len(w):
             break
         n = min(GECIS, p - bas, len(w) - p)

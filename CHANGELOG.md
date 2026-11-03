@@ -1,5 +1,11 @@
 # Değişiklikler
 
+## 0.3.1 — duraklamada çift başlangıç
+
+- Cümle içi duraklamanın sessizliği noktalamanın başına (önceki sözcüğün bitişine) eklenir. Noktalamanın içine
+  eklenince model sonraki sözcüğe orada hazırlandığı için sözcüğün başı iki kez duyuluyordu ("İkincisi: yetmiş" →
+  "yetyetmiş", "rrögar"). 4 ses × 7 cümle × 2 okumada tanıyıcının birebir duyduğu 4/56 → 11/56.
+
 ## 0.3.0 — 16 ses, makale okuma
 
 Makale okuma (03.11.2026: gerçek makaleler seslendirildi; Markdown işaretleri okunuyor, duygu cümle cümle sıçrıyor,

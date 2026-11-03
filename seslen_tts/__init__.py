@@ -10,4 +10,4 @@ from .model import ORAN, SesModeli
 from .seslen import TONLAR, Parca, Seslen, wav_yaz
 
 __all__ = ["ORAN", "SesModeli", "Seslen", "Parca", "TONLAR", "wav_yaz"]
-__version__ = "0.3.0"
+__version__ = "0.3.1"
