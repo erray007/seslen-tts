@@ -22,8 +22,8 @@ dependencies = [
     "numpy",
     "onnxruntime>=1.16",
     "huggingface_hub>=0.20",
-    "turkce-vurgu[tam]>=0.1",
-    "turkce-normalize>=0.1.3",          # yabancı adlar, para eki
+    "turkce-vurgu[tam]>=0.1.2",         # tire, biçim işaretleri
+    "turkce-normalize>=0.1.4",          # belge okuyucu, teknik yazımlar
 ]
 
 [project.optional-dependencies]

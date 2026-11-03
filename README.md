@@ -17,6 +17,7 @@ wav_yaz("merhaba.wav", s.tum("Merhaba! Yarın bize gelecek misiniz? Dikkat edin,
 ```
 seslen-tts "Bir varmış bir yokmuş, ormanda meraklı bir sincap yaşarmış." -s ayse -o masal.wav
 seslen-tts --sesler
+seslen-tts -d makale.md -s nehir --denetim -o makale.wav      # Markdown dosyası, özdenetimle
 ```
 
 ## Neler yapar
@@ -30,6 +31,14 @@ seslen-tts --sesler
   ("yardımcı olaBİLİR misin?").
 - **Otomatik duygu:** her cümlenin tonu metinden seçilir: soru merakla, uyarı uyarıyla, sevinç neşeyle okunur.
   [turkce-duygu](https://github.com/seslen-tr/turkce-duygu) gerekir (`pip install "seslen-tts[duygu]"`).
+- **Makale ve belge okuma:** Markdown ya da HTML olduğu gibi verilebilir: başlık, liste, tablo, bağlantı ve kod
+  işaretleri okunmaz, yapıları cümleye çevrilir ("1. madde" → "Birincisi: …", tablo satır satır). Makale, haber ve
+  bilgi metninde duygu sabit ve hafif kalır; uzun cümle bölünür; her cümle sesin doğal hızında okunur (model uzun
+  cümleyi hızlandırıyordu); virgül ve noktada hep durulur. Teknik yazımlar Türkçe okunur: "LLM" → elelem, "EVREN"
+  sözcük gibi, "Sentinel-2", "v0.2.1", "Qwen2.5", "10 m", "24 kHz", "fine-tuning".
+- **Özdenetim:** her cümle Türkçe bir tanıyıcıyla dinlenir; bir sözcük bozuk okunduysa yeniden, onarılarak
+  üretilir (sözcüğü yavaşlatma, ünlüyü uzatma, vurguyu kaldırma…). PyTorch gerekmez; tanıyıcı isteğe bağlıdır
+  (`Seslen(denetim=True)` ya da `--denetim`, ilk kullanımda ~360 MB iner).
 - **Otomatik üslup:** haber tempolu ve düz, masal yavaş ve hareketli, tarif adım adım okunur.
   [turkce-uslup](https://github.com/seslen-tr/turkce-uslup) gerekir (`pip install "seslen-tts[uslup]"`).
 
@@ -143,6 +152,10 @@ aktarıldı; aktarımın sesi değiştirmediği sınandı (log-mel farkı, model
 - Duygular seslere göre farklı belirginliktedir (ölçülenler arasında en belirgin: Ayşe ve Zeynep).
 
 ## Lisans ve kullanım koşulları
+
+Özdenetim tanıyıcısı (`denetim.onnx`): [mpoyraz/wav2vec2-xls-r-300m-cv8-turkish](https://huggingface.co/mpoyraz/wav2vec2-xls-r-300m-cv8-turkish)
+(Apache-2.0; XLS-R 300M üzerine Mozilla Common Voice 8.0 Türkçe), ONNX'e aktarılıp 8 bite indirildi.
+
 
 - **Kod:** MIT ([LICENSE](LICENSE)).
 - **Model ağırlıkları ve sesler:** CC BY-SA 4.0. Türkçe PL-BERT Vikipedi metniyle eğitildi; öğretmen VoxCPM2

@@ -15,6 +15,7 @@ from pathlib import Path
 
 DEPO = os.environ.get("SESLEN_TTS_HF", "seslen-tr/seslen-tts")
 DOSYALAR = ["metin.onnx", "ses.onnx", "stiller.npz", "sesler.json", "semboller.json"]
+ISTEGE_BAGLI = ["denetim.onnx", "denetim.json"]   # özdenetim tanıyıcısı (seslen_tts.denetim), ~360 MB
 URUN_SESLERI = {"damla", "kuzey"}           # Seslen'in yerel ürün sesi adları: açık modelde geçmez
 
 
@@ -32,7 +33,7 @@ def main() -> None:
     if sesler & URUN_SESLERI:
         raise SystemExit(f"ürün sesi var, yüklenmedi: {sesler & URUN_SESLERI}")
     with tempfile.TemporaryDirectory() as t:
-        for f in DOSYALAR:
+        for f in DOSYALAR + [f for f in ISTEGE_BAGLI if (a.klasor / f).exists()]:
             shutil.copy(a.klasor / f, Path(t) / f)
         if (a.klasor / "ornekler").exists():
             shutil.copytree(a.klasor / "ornekler", Path(t) / "ornekler")

@@ -111,8 +111,10 @@ Her cümlenin duygusu ayrı seçildi. Metin olduğu gibi verildi: saat, sayı ve
 | `stiller.npz` | 16 ses × 9 duygu stil vektörü (256 boyut) |
 | `sesler.json`, `semboller.json` | ses bilgileri; okunuş karakteri → işaret numarası |
 | `ornekler/*.wav` | her sesten bir örnek |
+| `denetim.onnx`, `denetim.json` (356 MB, isteğe bağlı) | özdenetim tanıyıcısı: Türkçe CTC (mpoyraz/wav2vec2-xls-r-300m-cv8-turkish, Apache-2.0; XLS-R 300M + Common Voice 8.0 Türkçe), ONNX, 8 bit |
 
-Paket ilk kullanımda yalnız ilk beş dosyayı indirir (`ornekler/` inmez). İnternetsiz kurulum için dosyaları bir
+Paket ilk kullanımda yalnız ilk beş dosyayı indirir (`ornekler/` inmez); tanıyıcı yalnız özdenetim istenince
+(`Seslen(denetim=True)`). İnternetsiz kurulum için dosyaları bir
 klasöre koyup `SESLEN_TTS_MODEL` ortam değişkeniyle ya da `Seslen(klasor="...")` ile gösterin.
 
 ## Sesler ve ölçümler
