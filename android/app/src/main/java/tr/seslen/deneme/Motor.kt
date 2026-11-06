@@ -1,0 +1,73 @@
+package tr.seslen.deneme
+
+import android.content.Context
+import com.chaquo.python.PyObject
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
+import org.json.JSONObject
+import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+
+/**
+ * Uygulama ile TTS servisinin ortak motoru (aynı süreç, tek Python, tek model). İlk kullanımda açılır.
+ */
+object Motor {
+    const val ORAN = 24000
+    const val SES_ONEKI = "tur-TUR-x-"
+    private val kilit = Any()
+    @Volatile private var py: PyObject? = null
+    var acilisSn = 0.0
+        private set
+    var isParcacigi = 4
+        private set
+
+    fun klasor(c: Context) = File(c.filesDir, "model")
+    fun indirildi(c: Context) = ModelIndirici.hazir(klasor(c))
+    fun acik() = py != null
+
+    /** [ad, görünen ad, açıklama]: sesler.json'dan, Python açılmadan (servis ses listesini erken ister). */
+    fun sesler(c: Context): List<Triple<String, String, String>> {
+        val f = File(klasor(c), "sesler.json")
+        if (!f.exists()) return emptyList()
+        val j = JSONObject(f.readText())
+        return j.keys().asSequence().map { a ->
+            val s = j.getJSONObject(a); Triple(a, s.optString("gorunen", a), s.optString("aciklama", ""))
+        }.toList()
+    }
+
+    fun ayarlar(c: Context) = c.getSharedPreferences("seslen", Context.MODE_PRIVATE)
+    fun varsayilanSes(c: Context) = ayarlar(c).getString("ses", "nehir")!!
+    fun varsayilanTon(c: Context) = ayarlar(c).getString("ton", "notr")!!
+
+    fun ac(c: Context): PyObject = py ?: synchronized(kilit) {
+        py ?: run {
+            if (!Python.isStarted()) Python.start(AndroidPlatform(c.applicationContext))
+            val m = Python.getInstance().getModule("kopru")
+            isParcacigi = minOf(4, Runtime.getRuntime().availableProcessors())
+            acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(), isParcacigi).toDouble()
+            py = m
+            m
+        }
+    }
+
+    /**
+     * Metni cümle cümle üretir; her cümlede parca(cümle, dalga, sonraki sessizlik ms, ton, üretim ms) çağrılır.
+     * durdu() true dönerse sonraki cümleye geçilmez.
+     */
+    fun konus(c: Context, metin: String, ses: String, ton: String, hiz: Double, perde: Double,
+              durdu: () -> Boolean, parca: (String, FloatArray, Int, String, Double) -> Unit) {
+        val m = ac(c)
+        val gen = m.callAttr("seslendir", metin, ses, ton, hiz, perde)
+        val sonraki = Python.getInstance().builtins["next"]!!
+        while (!durdu()) {
+            val p = sonraki.call(gen, null) ?: break
+            val l = p.asList()
+            val bayt = l[1].toJava(ByteArray::class.java)
+            val dalga = FloatArray(bayt.size / 4)
+            ByteBuffer.wrap(bayt).order(ByteOrder.nativeOrder()).asFloatBuffer().get(dalga)
+            parca(l[0].toString(), dalga, l[2].toInt(), l[3].toString(), l[4].toDouble())
+        }
+        gen.callAttr("close")
+    }
+}

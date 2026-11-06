@@ -4,8 +4,8 @@ KÖPRÜ — seslen_tts'i Android'de çalıştırır. Bütün mantık (okunuş, h
 taşıyıcısı, hız dengesi) seslen_tts'in kendisi; yalnız ONNX oturumları Android'in ONNX Runtime'ına (OrtKopru.kt)
 yönlenir: Python'un onnxruntime paketi Android'de yok.
 
-Kotlin şunları çağırır: hazirla(klasor, kopru, is_parcacigi), sesler(), seslendir(metin, ses, ton, hiz) → yineleyici
-(her adımda (cümle, float32 dalga baytları, sessizlik ms, ton, süre ms)).
+Kotlin şunları çağırır (Motor.kt): hazirla(klasor, kopru, is_parcacigi), seslendir(metin, ses, ton, hiz, perde) →
+yineleyici (her adımda (cümle, float32 dalga baytları, sessizlik ms, ton, süre ms)).
 """
 from __future__ import annotations
 
@@ -72,14 +72,9 @@ def hazirla(klasor: str, kopru, is_parcacigi: int = 4) -> float:
     return time.perf_counter() - t0
 
 
-def sesler() -> str:
-    """JSON: [[ad, görünen ad, açıklama], …]"""
-    return json.dumps([[a, b["gorunen"], b.get("aciklama", "")] for a, b in _SES.sesler.items()], ensure_ascii=False)
-
-
-def seslendir(metin: str, ses: str, ton: str = "otomatik", hiz: float = 1.0):
+def seslendir(metin: str, ses: str, ton: str = "otomatik", hiz: float = 1.0, perde: float = 1.0):
     t0 = time.perf_counter()
-    for p in _SES.seslendir(metin, ses=ses, ton=ton, hiz=hiz if hiz != 1.0 else None):
+    for p in _SES.seslendir(metin, ses=ses, ton=ton, hiz=hiz if hiz != 1.0 else None, perde=perde):
         sure = (time.perf_counter() - t0) * 1000
         yield p.cumle, p.ses.astype(np.float32).tobytes(), int(p.sessizlik_ms), p.ton, sure
         t0 = time.perf_counter()
