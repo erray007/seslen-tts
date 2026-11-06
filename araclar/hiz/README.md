@@ -27,6 +27,8 @@ Ara dosyalar `araclar/hiz/cikti/` altında (git dışında).
 | int8, + resblocks.3 | ×1,38, 0,63 dB |
 | Açılış | 0,97 sn; önceden eniyilenmiş .ort ile 0,74 sn (değmez) |
 | `Seslen.dogal_hiz` | yeni (ses, ton) başına ilk cümleden önce ~190 ms (+ okunuş) |
+| Kısa cümle taşıyıcısı (`tasiyici.py`) | 2 sözcüklük ifade 3 sözcüklükten 2 kat yavaş; yarım süreli taşıyıcı 674 → 479 ms, birebir %89 → %86 |
+| Telefon (Xiaomi 17, 4 iş parçacığı) | RTF 0,47 (bu makine 0,20); %95 çözücüde |
 
 ## Elenenler
 
@@ -37,11 +39,12 @@ Ara dosyalar `araclar/hiz/cikti/` altında (git dışında).
 | Snake Sin → polinom (`yama.py poli`) | SNR 84 dB, %6 yavaş | 13 küçük işlem tek Sin'den pahalı |
 | Dinamik int8 (Conv) | 7 kat yavaş | ConvInteger |
 | Dinamik int8 (Gemm/MatMul) | hız yok, 1,18 dB | |
-| Kısa cümlede taşıyıcıyı kırpmak (`tasiyici.py`) | 645 → 203 ms ama 6,9-8,3 dB | InstanceNorm bütün dalgaya bakıyor |
+| Kısa cümlede taşıyıcıyı kırpmak (git geçmişinde) | 645 → 203 ms ama 6,9-8,3 dB | InstanceNorm bütün dalgaya bakıyor |
+| Taşıyıcısız | 255 ms ama birebir %50 | uydurma hece geri geliyor |
 
 ## Sıradaki
 
-1. Ses önbelleği (aynı cümle + ses + ayar → hazır dalga): ekran okuyucuda tekrar eden ifadeler.
-2. `dogal_hiz` önbelleği (16 ses × 9 ton, model dosyasına bağlı).
+1. ~~Ses önbelleği~~, ~~`dogal_hiz` önbelleği~~, ~~ısınma~~: Android 0.3'te.
+2. Telefonda iş parçacığı sayısı ve XNNPACK karşılaştırması (Android 0.4).
 3. İsteğe bağlı int8 çözücü; varsayılan olmadan önce kulakla A/B dinleme ve özdenetim (CTC) sınaması.
 4. Snake için kaynaştırılmış özel çekirdek (çözücünün %19'u).

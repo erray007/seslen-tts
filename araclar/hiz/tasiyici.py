@@ -8,7 +8,15 @@ harfte keser. Bedeli: çözücü taşıyıcıyı da üretir, ekran okuyucu ifade
     python araclar/hiz/tasiyici.py [tekrar]       # gerçek okunuş (turkce-vurgu) ve denetim.onnx gerekir
 
 Ölçü (seslen_tts.denetim): birebir = tanıyıcının duyduğu metinle aynı; kuyruk = sonda fazladan harf duyuldu; ceza =
-Ozdenetim.dinle cezası (0 kusursuz). Süre: konus() ortalaması (ms). Eski deneme (taşıyıcıyı çözücüye vermeden
+Ozdenetim.dinle cezası (0 kusursuz). Süre: konus() ortalaması (ms).
+
+06.11.2026, 4 ses × 20 ifade × 3 tekrar (240; ±%2 kadar oynar):
+  şimdiki taşıyıcı               birebir %89,2  kuyruk %0    674 ms
+  şimdiki, yarım süre (×1/2)     %85,8          %2,5         479 ms   ← uygulamada "hızlı" seçeneği
+  şimdiki, ×1/3                  %82,9          %3,8         (tek tekrarda 449 ms)
+  " Hem bunu söyledim."          %85,0          %0           (tek tekrarda 474 ms)
+  taşıyıcısız (tek tekrar)       %50            %10          255 ms
+Kısa taşıyıcı da hızlı taşıyıcı da ~%30 kazandırıyor, ~3-4 puan doğruluk bedeliyle; varsayılan değişmedi. Eski deneme (taşıyıcıyı çözücüye vermeden
 hizalamayı kırpmak, InstanceNorm yüzünden 6,9-8,3 dB bozuk) git geçmişinde.
 """
 from __future__ import annotations
