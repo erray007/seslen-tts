@@ -16,11 +16,31 @@ object ModelIndirici {
     const val INT8 = "ses_int8.onnx"
     private const val INT8_DEPO = "https://raw.githubusercontent.com/erray007/seslen-tts/model-int8/"
 
-    /** int8 çözücüyü parçalarından indirir, birleştirir, SHA-256 ile doğrular. ilerleme(dosya, MB, toplam MB) */
-    fun indirInt8(klasor: File, ilerleme: (String, Long, Long) -> Unit) {
+    private fun int8Bilgi() = org.json.JSONObject(URL(INT8_DEPO + "$INT8.json").readText())
+
+    /** Daldaki int8 telefondakinden yeni mi (SHA-256 farklı)? Ağ yoksa false. */
+    fun int8Yeni(klasor: File): Boolean = try {
+        val dosya = File(klasor, INT8)
+        val yerel = File(klasor, "$INT8.sha256")
+        if (dosya.exists() && !yerel.exists()) yerel.writeText(sha256(dosya))     // 0.6'dan kalan: bir kez hesapla
+        dosya.exists() && yerel.readText().trim() != int8Bilgi().getString("sha256")
+    } catch (e: Throwable) { false }
+
+    private fun sha256(f: File): String {
+        val ozet = java.security.MessageDigest.getInstance("SHA-256")
+        f.inputStream().use { g ->
+            val t = ByteArray(1 shl 20)
+            while (true) { val n = g.read(t); if (n < 0) break; ozet.update(t, 0, n) }
+        }
+        return ozet.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    /** int8 çözücüyü parçalarından indirir, birleştirir, SHA-256 ile doğrular (guncelle: var olanın yerine yenisi).
+     *  ilerleme(dosya, MB, toplam MB) */
+    fun indirInt8(klasor: File, guncelle: Boolean = false, ilerleme: (String, Long, Long) -> Unit) {
         val hedef = File(klasor, INT8)
-        if (hedef.exists()) return
-        val bilgi = org.json.JSONObject(URL(INT8_DEPO + "$INT8.json").readText())
+        if (hedef.exists() && !guncelle) return
+        val bilgi = int8Bilgi()
         val parcalar = bilgi.getJSONArray("parcalar")
         val toplam = bilgi.getLong("boyut") shr 20
         val gecici = File(klasor, "$INT8.part")
@@ -46,7 +66,9 @@ object ModelIndirici {
         }
         val sha = ozet.digest().joinToString("") { "%02x".format(it) }
         if (sha != bilgi.getString("sha256")) { gecici.delete(); error("int8 çözücü bozuk indi (SHA-256 tutmadı)") }
+        hedef.delete()
         if (!gecici.renameTo(hedef)) error("$INT8 kaydedilemedi")
+        File(klasor, "$INT8.sha256").writeText(sha)
     }
 
     /** ilerleme(dosya, indirilen MB, toplam MB) */

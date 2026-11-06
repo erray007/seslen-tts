@@ -77,9 +77,10 @@ object Motor {
         "Profil ($isParcacigi iş parçacığı, ${cozucu(c)}):\n$ozet"
     }
 
-    /** Kullanılan çözücü dosyası: ses.onnx ya da int8 kopyası (indirildiyse). */
+    /** Kullanılan çözücü dosyası: int8 kopyası (indirildiyse; varsayılan, telefonda 1,46 kat hızlı ve kulakla aynı)
+     *  ya da ses.onnx. */
     fun cozucu(c: Context): String {
-        val d = ayarlar(c).getString("cozucu", "ses.onnx")!!
+        val d = ayarlar(c).getString("cozucu", ModelIndirici.INT8)!!
         return if (File(klasor(c), d).exists()) d else "ses.onnx"
     }
 

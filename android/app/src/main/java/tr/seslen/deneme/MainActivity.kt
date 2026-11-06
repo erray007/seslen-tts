@@ -41,6 +41,7 @@ class MainActivity : Activity() {
     private lateinit var isp: Spinner
     private lateinit var tasiyici: Spinner
     private lateinit var cozucuSecici: Spinner
+    private lateinit var int8Guncelle: Button
     private val IS_PARCACIKLARI = listOf(1, 2, 3, 4, 6, 8)
     private var sesler = listOf<String>()
     @Volatile private var durdur = false
@@ -100,12 +101,13 @@ class MainActivity : Activity() {
         cozucuSecici = Spinner(this).apply {
             contentDescription = "Çözücü"
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
-                                   listOf("Çözücü: özgün", "Çözücü: int8 (hızlı, ~210 MB iner)"))
+                                   listOf("Çözücü: özgün", "Çözücü: int8 (hızlı, ilk seçimde ~200 MB iner)"))
             setSelection(if (Motor.cozucu(this@MainActivity) == ModelIndirici.INT8) 1 else 0)
             onItemSelectedListener = secildi { i -> cozucuDegisti(i) }
         }
         konus = dugme("Konuş") { basla() }.apply { isEnabled = false }
         val dur = dugme("Dur") { durdur = true }
+        int8Guncelle = dugme("int8 çözücüyü güncelle") { int8Indir(true) }.apply { visibility = View.GONE }
         val profil = dugme("Profil çıkar") {
             if (!Motor.acik()) return@dugme
             val m = metin.text.toString()
@@ -125,7 +127,7 @@ class MainActivity : Activity() {
         olcum = yazi("").apply { setTextIsSelectable(true); textSize = 15f }
         val not = yazi("Bu ses yapay zekâ ile üretilmiştir. Model: seslen-tts (Mehmet Veysel Delibaş, CC BY-SA 4.0).")
             .apply { textSize = 13f }
-        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, tasiyici, cozucuSecici, konus, dur, profil, ttsAyar, bilgi, olcum, not)
+        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, tasiyici, cozucuSecici, konus, dur, int8Guncelle, profil, ttsAyar, bilgi, olcum, not)
             .forEach { k.addView(it) }
         setContentView(ScrollView(this).apply { addView(k) })
     }
@@ -135,6 +137,22 @@ class MainActivity : Activity() {
         override fun onNothingSelected(p: AdapterView<*>?) {}
     }
 
+    /** int8'i indirir (guncelle: yenisini) ve kullanmaya başlar. */
+    private fun int8Indir(guncelle: Boolean) = isci.execute {
+        try {
+            var son = -1L
+            ModelIndirici.indirInt8(Motor.klasor(this), guncelle) { ad, mb, top ->
+                if (mb / 10 != son / 10 || mb == top) { son = mb; yaz("İndiriliyor: $ad, $mb / $top MB") }
+            }
+            ekle("Çözücü: int8, açılış %.2f sn".format(Motor.cozucuSec(this, ModelIndirici.INT8)))
+            ekle("Isınma: %.2f sn".format(Motor.isit(this)))
+            runOnUiThread { int8Guncelle.visibility = View.GONE; cozucuSecici.setSelection(1) }
+            yaz("Hazır.")
+        } catch (e: Throwable) {
+            ekle("Hata: ${e.message}"); yaz("Hata: ${e.message}")
+        }
+    }
+
     private fun cozucuDegisti(i: Int) {
         val dosya = if (i == 1) ModelIndirici.INT8 else "ses.onnx"
         if (!Motor.acik() || dosya == Motor.cozucu(this) && java.io.File(Motor.klasor(this), dosya).exists()) return
@@ -142,7 +160,7 @@ class MainActivity : Activity() {
             try {
                 if (i == 1) {
                     var son = -1L
-                    ModelIndirici.indirInt8(Motor.klasor(this)) { ad, mb, top ->
+                    ModelIndirici.indirInt8(Motor.klasor(this), false) { ad, mb, top ->
                         if (mb / 10 != son / 10 || mb == top) { son = mb; yaz("İndiriliyor: $ad, $mb / $top MB") }
                     }
                 }
@@ -205,6 +223,10 @@ class MainActivity : Activity() {
             }
             ekle("Açılış: %.2f sn, %d iş parçacığı, %s".format(Motor.acilisSn, Motor.isParcacigi,
                                                                 if (Motor.xnnpack) "XNNPACK" else "işlemci"))
+            if (ModelIndirici.int8Yeni(klasor)) runOnUiThread {
+                int8Guncelle.visibility = View.VISIBLE
+                ekle("int8 çözücünün yeni sürümü var: \"int8 çözücüyü güncelle\" düğmesine basın.")
+            }
             yaz("Ses hazırlanıyor…")
             ekle("Isınma: %.2f sn".format(Motor.isit(this)))
             yaz("Hazır.")
