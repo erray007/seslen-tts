@@ -44,11 +44,26 @@ object Motor {
         py ?: run {
             if (!Python.isStarted()) Python.start(AndroidPlatform(c.applicationContext))
             val m = Python.getInstance().getModule("kopru")
-            isParcacigi = minOf(4, Runtime.getRuntime().availableProcessors())
+            isParcacigi = istenenIsParcacigi(c)
             acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(), isParcacigi).toDouble()
             py = m
             m
         }
+    }
+
+    /** Ayardaki iş parçacığı sayısı (yoksa en çok 4). Telefonda büyük / küçük çekirdek karışık: en iyisi ölçülür. */
+    fun istenenIsParcacigi(c: Context) =
+        ayarlar(c).getInt("is_parcacigi", minOf(4, Runtime.getRuntime().availableProcessors()))
+
+    /** İş parçacığı sayısı değişti: oturumlar yeniden açılır (önbellek ve ısınma sıfırlanır). Süre sn. */
+    fun yenidenAc(c: Context, n: Int): Double = synchronized(kilit) {
+        ayarlar(c).edit().putInt("is_parcacigi", n).apply()
+        val m = py ?: return ac(c).let { acilisSn }
+        isParcacigi = n
+        acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(), n).toDouble()
+        isinan.clear()
+        synchronized(onbellek) { onbellek.clear(); onbellekOrnek = 0 }
+        acilisSn
     }
 
     /** Sesin doğal hızı, harf adları ve ONNX Runtime'ın ilk (yavaş) çalıştırması: ilk istekten önce. Süre sn. */

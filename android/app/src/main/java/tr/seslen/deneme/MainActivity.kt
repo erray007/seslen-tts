@@ -38,6 +38,8 @@ class MainActivity : Activity() {
     private lateinit var ton: Spinner
     private lateinit var hiz: SeekBar
     private lateinit var konus: Button
+    private lateinit var isp: Spinner
+    private val IS_PARCACIKLARI = listOf(1, 2, 3, 4, 6, 8)
     private var sesler = listOf<String>()
     @Volatile private var durdur = false
 
@@ -79,6 +81,21 @@ class MainActivity : Activity() {
                 override fun onStopTrackingTouch(s: SeekBar?) {}
             })
         }
+        isp = Spinner(this).apply {
+            contentDescription = "İş parçacığı sayısı"
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                                   IS_PARCACIKLARI.map { "$it iş parçacığı" })
+            setSelection(maxOf(0, IS_PARCACIKLARI.indexOf(Motor.istenenIsParcacigi(this@MainActivity))))
+            onItemSelectedListener = secildi { i ->
+                val n = IS_PARCACIKLARI[i]
+                if (Motor.acik() && n != Motor.isParcacigi) isci.execute {
+                    yaz("Model $n iş parçacığıyla yeniden açılıyor…")
+                    ekle("Yeniden açılış: %.2f sn, %d iş parçacığı".format(Motor.yenidenAc(this@MainActivity, n), n))
+                    ekle("Isınma: %.2f sn".format(Motor.isit(this@MainActivity)))
+                    yaz("Hazır.")
+                }
+            }
+        }
         konus = dugme("Konuş") { basla() }.apply { isEnabled = false }
         val dur = dugme("Dur") { durdur = true }
         val ttsAyar = dugme("Metin okuma ayarlarını aç") {
@@ -91,7 +108,7 @@ class MainActivity : Activity() {
         olcum = yazi("").apply { setTextIsSelectable(true); textSize = 15f }
         val not = yazi("Bu ses yapay zekâ ile üretilmiştir. Model: seslen-tts (Mehmet Veysel Delibaş, CC BY-SA 4.0).")
             .apply { textSize = 13f }
-        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, konus, dur, ttsAyar, bilgi, olcum, not)
+        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, konus, dur, ttsAyar, bilgi, olcum, not)
             .forEach { k.addView(it) }
         setContentView(ScrollView(this).apply { addView(k) })
     }

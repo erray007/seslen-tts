@@ -1,55 +1,87 @@
 # -*- coding: utf-8 -*-
 """
-TAŞIYICI — kısa cümlede (model.KISA_SOZCUK) taşıyıcının çözücüye verilmemesi: hizalama son harf + pay birimde
-kesilirse süre ve tam taşıyıcılı okumaya mel farkı (6 ekran okuyucu ifadesi × 3 ses).
+TAŞIYICI — kısa cümlede (model.KISA_SOZCUK) taşıyıcı seçenekleri: süre ve özdenetim tanıyıcısının duyduğu.
 
-    python araclar/hiz/tasiyici.py      # önce: python araclar/hiz/yama.py sabit
+Kısa cümleye (1-2 sözcük) model sonda uydurma hece ekliyor ("Evet." → "evetnı"); model.TASIYICI cümleyi uzatıp son
+harfte keser. Bedeli: çözücü taşıyıcıyı da üretir, ekran okuyucu ifadeleri ("Geri düğmesi.") 2-3 kat yavaşlar.
 
-06.11.2026: tam 645 ms; pay 20 → 276 ms ama mel farkı 6,9 dB (en kötü 10,6), pay 2 → 203 ms, 8,3 dB. ELENDİ:
-çözücüdeki InstanceNormalization (65) istatistiği bütün dalga üstünden alıyor; sonu kesilince başı da değişiyor.
+    python araclar/hiz/tasiyici.py [tekrar]       # gerçek okunuş (turkce-vurgu) ve denetim.onnx gerekir
+
+Ölçü (seslen_tts.denetim): birebir = tanıyıcının duyduğu metinle aynı; kuyruk = sonda fazladan harf duyuldu; ceza =
+Ozdenetim.dinle cezası (0 kusursuz). Süre: konus() ortalaması (ms). Eski deneme (taşıyıcıyı çözücüye vermeden
+hizalamayı kırpmak, InstanceNorm yüzünden 6,9-8,3 dB bozuk) git geçmişinde.
 """
 from __future__ import annotations
 
+import sys
 import time
 
 import numpy as np
 
-from mel import fark
-from ortak import CIKTI, M, kaba, oturum, ses_modeli
+from ortak import M
 
-KISA = ["Ayarlar düğmesi.", "Evet.", "Geri.", "Ekran kilitlendi.", "Mesajlar.", "Tamam."]
+from seslen_tts.denetim import Ozdenetim, Taniyici, normal   # noqa: E402
+
+IFADELER = ["Evet.", "Tamam.", "Geri.", "Bitti.", "Katkı.", "Dikkat!", "Ayarlar.", "Kamera.", "Telefon.", "Mesajlar.",
+            "Bağlandı.", "Kapalı.", "Açık.", "Kilitli.", "Ana ekran.", "Geri düğmesi.", "Ses düzeyi.", "Bildirimler.",
+            "Gelen kutusu.", "Arama yap."]
+SESLER = ["nehir", "ege", "ayse", "serdar"]
+SECENEKLER = {                       # ad → taşıyıcı (None: taşıyıcısız, KISA_SOZCUK = 0)
+    "tam (şimdiki)": M.TASIYICI,
+    "yok": None,
+    "hem de": " Hem de.",
+    "hem bunu da": " Hem bunu da.",
+    "hem bunu söyledim": " Hem bunu söyledim.",
+    "tam, hızlı ×1/2": (M.TASIYICI, 0.5),
+    "tam, hızlı ×1/3": (M.TASIYICI, 1 / 3),
+    "tam, hızlı ×1/5": (M.TASIYICI, 0.2),
+    "söyledim, hızlı ×1/3": (" Hem bunu söyledim.", 1 / 3),
+}
 
 
-def calis(sm, cozucu, metin: str, ses: str, pay: int | None):
-    stil = sm.stil(ses).reshape(1, -1)
-    nokta = {sm.semboller[x] for x in ".!"}
-    kod_k = [sm.semboller[x] for x in kaba(metin) if x in sm.semboller]
-    son = len(kod_k)
-    while son > 1 and kod_k[son - 1] in nokta:
-        son -= 1
-    _, d, t_en, sure = sm._metin_tarafi(kaba(metin + M.TASIYICI), stil)
-    sure = np.maximum(np.round(sure), 1).astype(np.int64)
-    sure[0] = min(sure[0], M.BAS_DOLGU)
-    kes = int(sure[:son + 1].sum()) + 1                       # son harften 1 birim sonra (konus gibi)
-    hiza = M.hizala(sure)
-    if pay is not None:
-        hiza = hiza[:, :, :min(hiza.shape[2], kes + pay)]
-    g = {"d": d, "t_en": t_en, "hiza": hiza, "s": stil[:, 128:], "ref": stil[:, :128],
-         "perde": np.array([1.], np.float32), "tonlama": np.array([1.], np.float32),
-         "egri": np.zeros((1, len(sure)), np.float32)}
-    t0 = time.perf_counter()
-    w = cozucu.run(None, g)[0].reshape(-1)
-    return w[:kes * M.ORNEK_BIRIM], time.perf_counter() - t0
+def hizli_konus(sm: M.SesModeli, metin: str, stil: np.ndarray, kat: float | None) -> np.ndarray:
+    """Taşıyıcının süresi kat ile çarpılır (son harf ve ardındaki noktalama olduğu gibi kalır)."""
+    if not kat:
+        return sm.konus(metin, stil)
+    bitis = sm._kisa_bitis(metin)
+    if not bitis:
+        return sm.konus(metin, stil)
+    n = sum(c in sm.semboller for c in sm.okunus(metin + M.TASIYICI))
+    return sm.konus(metin, stil, uzat=[(bitis + 2, n + 1, kat)])
+
+
+def dene(sm: M.SesModeli, oz: Ozdenetim, tasiyici, tekrar: int) -> tuple[float, float, float, float]:
+    tasiyici, kat = tasiyici if isinstance(tasiyici, tuple) else (tasiyici, None)
+    kisa, tas = M.KISA_SOZCUK, M.TASIYICI
+    M.KISA_SOZCUK, M.TASIYICI = (0, tas) if tasiyici is None else (kisa, tasiyici)
+    from turkce_vurgu import normallestir
+    birebir = kuyruk = 0
+    cezalar, sureler = [], []
+    try:
+        for ses in SESLER:
+            stil = sm.stil(ses)
+            for m in IFADELER:
+                ref = normal(normallestir(m))
+                for _ in range(tekrar):
+                    t0 = time.perf_counter()
+                    w = hizli_konus(sm, m, stil, kat)
+                    sureler.append(time.perf_counter() - t0)
+                    ceza, _, duyulan = oz.dinle(w, M.ORAN, ref)
+                    d, r = duyulan.strip(), ref.strip()
+                    birebir += d == r
+                    kuyruk += d.startswith(r) and len(d) > len(r)
+                    cezalar.append(ceza)
+    finally:
+        M.KISA_SOZCUK, M.TASIYICI = kisa, tas
+    n = len(cezalar)
+    return birebir / n, kuyruk / n, float(np.mean(cezalar)), float(np.mean(sureler)) * 1000
 
 
 if __name__ == "__main__":
-    sm, cozucu = ses_modeli(4), oturum(CIKTI / "sabit.onnx")
-    for pay in [None, 20, 10, 5, 2]:
-        f, t = [], []
-        for c in KISA:
-            for ses in ["nehir", "ayse", "serdar"]:
-                tam, _ = calis(sm, cozucu, c, ses, None)
-                w, s = calis(sm, cozucu, c, ses, pay)
-                f.append(fark(tam, w))
-                t.append(s)
-        print(f"pay {str(pay):5} çözücü {np.mean(t) * 1000:5.0f} ms   mel farkı {np.mean(f):.2f} (en kötü {max(f):.2f})")
+    tekrar = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+    sm = M.SesModeli(None, 4)
+    oz = Ozdenetim(sm, Taniyici(sm.klasor, 4))
+    print(f"{len(SESLER)} ses × {len(IFADELER)} ifade × {tekrar} tekrar")
+    for ad, t in SECENEKLER.items():
+        b, k, c, s = dene(sm, oz, t, tekrar)
+        print(f"{ad:20} birebir %{b * 100:4.0f}  kuyruk %{k * 100:4.0f}  ceza {c:5.2f}  süre {s:4.0f} ms")
