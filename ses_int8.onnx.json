@@ -1,0 +1,13 @@
+{
+ "parcalar": [
+  "ses_int8.onnx.p0",
+  "ses_int8.onnx.p1",
+  "ses_int8.onnx.p2",
+  "ses_int8.onnx.p3",
+  "ses_int8.onnx.p4"
+ ],
+ "boyut": 210503027,
+ "sha256": "a25311619ca808be875a4617b150b21f3af2b3c427e1114e1b1e28aeac8951a5",
+ "kaynak": "seslen-tr/seslen-tts ses.onnx",
+ "nicele": "araclar/hiz/nicele.py resblocks.0-3,noise_res --gurultu"
+}
