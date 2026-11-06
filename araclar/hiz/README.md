@@ -24,7 +24,7 @@ Ara dosyalar `araclar/hiz/cikti/` altında (git dışında).
 | Çözücü profili (`profil.py`) | Conv %57, Sin %19, InstanceNorm %6, ConvTranspose %5 |
 | Sin (`mikro.py`) | ORT'de tek iş parçacığında; Mul 4 iş parçacığında 2,7 kat hızlanıyor |
 | **int8, güvenli** (`nicele.py`) | resblocks 0-2 + noise_res: **×1,28, mel farkı 0,55 dB** (kıyas 0,52) |
-| int8, + resblocks.3 | ×1,38, 0,63 dB |
+| int8, + resblocks.3 | ×1,38, 0,63 dB; tanıyıcıyla 192 okumada birebir %83,9 (özgün %84,4). **Dağıtılan:** `model-int8` dalı |
 | Açılış | 0,97 sn; önceden eniyilenmiş .ort ile 0,74 sn (değmez) |
 | `Seslen.dogal_hiz` | yeni (ses, ton) başına ilk cümleden önce ~190 ms (+ okunuş) |
 | Kısa cümle taşıyıcısı (`tasiyici.py`) | 2 sözcüklük ifade 3 sözcüklükten 2 kat yavaş; yarım süreli taşıyıcı 674 → 479 ms, birebir %89 → %86 |
