@@ -62,7 +62,10 @@ class MainActivity : Activity() {
             contentDescription = "Duygu tonu"
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, TON_ADLARI)
             setSelection(maxOf(0, TONLAR.indexOf(Motor.varsayilanTon(this@MainActivity))))
-            onItemSelectedListener = secildi { Motor.ayarlar(this@MainActivity).edit().putString("ton", TONLAR[it]).apply() }
+            onItemSelectedListener = secildi {
+                Motor.ayarlar(this@MainActivity).edit().putString("ton", TONLAR[it]).apply()
+                if (Motor.acik()) isci.execute { Motor.isit(this@MainActivity) }
+            }
         }
         val hizYazi = yazi("Hız: 1,0")
         hiz = SeekBar(this).apply {
@@ -121,11 +124,16 @@ class MainActivity : Activity() {
                 ses.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item,
                                            liste.map { "${it.second}: ${it.third}" })
                 ses.setSelection(maxOf(0, sesler.indexOf(Motor.varsayilanSes(this))))
-                ses.onItemSelectedListener = secildi { Motor.ayarlar(this).edit().putString("ses", sesler[it]).apply() }
+                ses.onItemSelectedListener = secildi {
+                    Motor.ayarlar(this).edit().putString("ses", sesler[it]).apply()
+                    isci.execute { Motor.isit(this) }
+                }
                 konus.isEnabled = true
             }
-            yaz("Hazır.")
             ekle("Açılış: %.2f sn, %d iş parçacığı".format(Motor.acilisSn, Motor.isParcacigi))
+            yaz("Ses hazırlanıyor…")
+            ekle("Isınma: %.2f sn".format(Motor.isit(this)))
+            yaz("Hazır.")
         } catch (e: Throwable) {
             yaz("Hata: ${e.message}")
         }
@@ -146,13 +154,14 @@ class MainActivity : Activity() {
             var ilk = true
             var topSes = 0.0; var topSure = 0.0
             try {
-                Motor.konus(this, m, s, t, h, 1.0, { durdur }) { cumle, dalga, ms, tn, sure ->
-                    val sn = dalga.size.toDouble() / Motor.ORAN
+                Motor.konus(this, m, s, t, h, 1.0, { durdur }) { p ->
+                    val sn = p.dalga.size.toDouble() / Motor.ORAN
                     if (ilk) { ekle("İlk ses: ${SystemClock.elapsedRealtime() - t0} ms"); ilk = false }
-                    ekle("• %s  [%s] %.2f sn ses, %.0f ms (RTF %.2f)".format(cumle, tn, sn, sure, sure / 1000 / sn))
-                    topSes += sn; topSure += sure / 1000
-                    kuyruk.put(dalga)
-                    kuyruk.put(FloatArray(Motor.ORAN * ms / 1000))
+                    ekle("• %s  [%s] %.2f sn ses, %.0f ms (RTF %.2f; %s)".format(p.cumle, p.ton, sn, p.sureMs,
+                                                                               p.sureMs / 1000 / sn, p.asama))
+                    topSes += sn; topSure += p.sureMs / 1000
+                    kuyruk.put(p.dalga)
+                    kuyruk.put(FloatArray(Motor.ORAN * p.sessizlikMs / 1000))
                 }
                 if (topSes > 0) ekle("Toplam: %.1f sn ses, %.1f sn üretim, RTF %.2f\n".format(topSes, topSure, topSure / topSes))
             } catch (e: Throwable) {

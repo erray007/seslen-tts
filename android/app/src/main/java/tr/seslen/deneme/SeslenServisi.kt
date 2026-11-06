@@ -46,6 +46,14 @@ class SeslenServisi : TextToSpeechService() {
     override fun onGetDefaultVoiceNameFor(dil: String?, ulke: String?, varyant: String?): String? =
         if (turkce(dil)) Motor.SES_ONEKI + Motor.varsayilanSes(this) else null
 
+    override fun onCreate() {
+        super.onCreate()
+        // ısınma: ilk dokunuşta model açılışı ve ilk çalıştırma beklenmesin
+        if (Motor.indirildi(this)) Thread {
+            try { Motor.isit(this) } catch (e: Throwable) { Log.e("Seslen", "ısınma hatası", e) }
+        }.start()
+    }
+
     override fun onStop() {
         durdu = true
     }
@@ -65,11 +73,13 @@ class SeslenServisi : TextToSpeechService() {
         val enCok = geri.maxBufferSize
         try {
             var bekleyen = 0                                     // önceki cümleden sonra çalınacak sessizlik (örnek)
-            Motor.konus(this, metin, ses, Motor.varsayilanTon(this), hiz, perde, { durdu }) { _, dalga, ms, _, _ ->
+            Motor.konus(this, metin, ses, Motor.varsayilanTon(this), hiz, perde, { durdu }) { p ->
                 if (bekleyen > 0) gonder(geri, ShortArray(bekleyen), enCok)
-                val pcm = ShortArray(dalga.size) { i -> (dalga[i].coerceIn(-1f, 1f) * 32767f).toInt().toShort() }
+                val d = p.dalga
+                val pcm = ShortArray(d.size) { i -> (d[i].coerceIn(-1f, 1f) * 32767f).toInt().toShort() }
                 gonder(geri, pcm, enCok)
-                bekleyen = Motor.ORAN * ms / 1000
+                bekleyen = Motor.ORAN * p.sessizlikMs / 1000
+                Log.d("Seslen", "${p.cumle}: ${"%.0f".format(p.sureMs)} ms (${p.asama})")
             }
             if (durdu) geri.error(TextToSpeech.STOPPED) else geri.done()
         } catch (e: Throwable) {

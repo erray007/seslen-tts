@@ -51,23 +51,70 @@ object Motor {
         }
     }
 
+    /** Sesin doğal hızı, harf adları ve ONNX Runtime'ın ilk (yavaş) çalıştırması: ilk istekten önce. Süre sn. */
+    fun isit(c: Context, ses: String = varsayilanSes(c), ton: String = varsayilanTon(c)): Double {
+        val m = ac(c)
+        val anahtar = "$ses/$ton"
+        if (anahtar in isinan) return 0.0
+        val sn = m.callAttr("isit", ses, ton).toDouble()
+        isinan.add(anahtar)
+        return sn
+    }
+    private val isinan = java.util.Collections.synchronizedSet(HashSet<String>())
+
+    /** Bir cümlenin sonucu: önbellekte de bu tutulur. */
+    class Parca(val cumle: String, val dalga: FloatArray, val sessizlikMs: Int, val ton: String,
+                val sureMs: Double, val asama: String)
+
+    // SES ÖNBELLEĞİ: ekran okuyucu aynı ifadeleri sık tekrarlıyor ("Geri düğmesi", "Ana ekran"). Anahtar metin + ses +
+    // ton + hız + perde; en son kullanılan kalır, toplam ONBELLEK_ORNEK örnek (float, ~60 sn ses, ~6 MB).
+    private const val ONBELLEK_ORNEK = 60 * ORAN
+    private const val ONBELLEK_EN_UZUN = 10 * ORAN          // bundan uzun metin önbelleğe girmez
+    private val onbellek = object : LinkedHashMap<String, List<Parca>>(64, 0.75f, true) {}
+    private var onbellekOrnek = 0
+
+    private fun onbellekAl(k: String) = synchronized(onbellek) { onbellek[k] }
+    private fun onbellegeKoy(k: String, p: List<Parca>) = synchronized(onbellek) {
+        val n = p.sumOf { it.dalga.size }
+        if (n > ONBELLEK_EN_UZUN || k in onbellek) return
+        onbellek[k] = p; onbellekOrnek += n
+        val i = onbellek.entries.iterator()
+        while (onbellekOrnek > ONBELLEK_ORNEK && i.hasNext()) {
+            val e = i.next(); onbellekOrnek -= e.value.sumOf { it.dalga.size }; i.remove()
+        }
+    }
+
     /**
-     * Metni cümle cümle üretir; her cümlede parca(cümle, dalga, sonraki sessizlik ms, ton, üretim ms) çağrılır.
+     * Metni cümle cümle üretir; her cümlede parca(...) çağrılır (önbellekteyse hemen, sureMs 0).
      * durdu() true dönerse sonraki cümleye geçilmez.
      */
     fun konus(c: Context, metin: String, ses: String, ton: String, hiz: Double, perde: Double,
-              durdu: () -> Boolean, parca: (String, FloatArray, Int, String, Double) -> Unit) {
+              durdu: () -> Boolean, parca: (Parca) -> Unit) {
+        val k = "$ses|$ton|%.2f|%.2f|$metin".format(hiz, perde)
+        onbellekAl(k)?.let { liste ->
+            for (p in liste) { if (durdu()) return; parca(Parca(p.cumle, p.dalga, p.sessizlikMs, p.ton, 0.0, "önbellek")) }
+            return
+        }
         val m = ac(c)
         val gen = m.callAttr("seslendir", metin, ses, ton, hiz, perde)
         val sonraki = Python.getInstance().builtins["next"]!!
-        while (!durdu()) {
-            val p = sonraki.call(gen, null) ?: break
-            val l = p.asList()
-            val bayt = l[1].toJava(ByteArray::class.java)
-            val dalga = FloatArray(bayt.size / 4)
-            ByteBuffer.wrap(bayt).order(ByteOrder.nativeOrder()).asFloatBuffer().get(dalga)
-            parca(l[0].toString(), dalga, l[2].toInt(), l[3].toString(), l[4].toDouble())
+        val hepsi = ArrayList<Parca>()
+        var tamam = false
+        try {
+            while (!durdu()) {
+                val p = sonraki.call(gen, null)
+                if (p == null) { tamam = true; break }
+                val l = p.asList()
+                val bayt = l[1].toJava(ByteArray::class.java)
+                val dalga = FloatArray(bayt.size / 4)
+                ByteBuffer.wrap(bayt).order(ByteOrder.nativeOrder()).asFloatBuffer().get(dalga)
+                val yeni = Parca(l[0].toString(), dalga, l[2].toInt(), l[3].toString(), l[4].toDouble(), l[5].toString())
+                hepsi.add(yeni)
+                parca(yeni)
+            }
+        } finally {
+            gen.callAttr("close")
         }
-        gen.callAttr("close")
+        if (tamam) onbellegeKoy(k, hepsi)
     }
 }
