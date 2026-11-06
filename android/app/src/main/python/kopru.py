@@ -22,6 +22,10 @@ _TUR = {np.dtype(np.float32): 0, np.dtype(np.int64): 1}
 _SES = None
 _HIZ_DOSYASI: Path | None = None
 _SURE: dict[str, float] = {}           # aşama süreleri (ms), her cümlede sıfırlanır
+# HIZLI TAŞIYICI: kısa cümlede (model.KISA_SOZCUK) taşıyıcının süresi bu katla çarpılır (1 = olduğu gibi). Taşıyıcı
+# metinde kalır, çözücü daha az üretir. 06.11.2026 (araclar/hiz/tasiyici.py, 4 ses × 20 ifade): ×1/2 birebir %86 /
+# 475 ms, olduğu gibi %89 / 681 ms (tek tekrar).
+TASIYICI_KAT = 1.0
 
 
 class _Oturum:
@@ -63,6 +67,14 @@ class _AndroidModeli(M.SesModeli):
         self._noktali = {self.semboller[c] for c in ";" if c in self.semboller}
         self._iki_nokta = {self.semboller[c] for c in ":" if c in self.semboller}
 
+    def konus(self, metin, stil, *a, okunus=None, uzat=None, **kw):
+        if TASIYICI_KAT != 1.0 and okunus is None and uzat is None:
+            bitis = self._kisa_bitis(metin)
+            if bitis:
+                n = sum(c in self.semboller for c in self.okunus(metin + M.TASIYICI))
+                uzat = [(bitis + 2, n + 1, TASIYICI_KAT)]
+        return super().konus(metin, stil, *a, okunus=okunus, uzat=uzat, **kw)
+
     def okunus(self, metin: str) -> str:
         t0 = time.perf_counter()
         r = super().okunus(metin)
@@ -86,6 +98,11 @@ def hazirla(klasor: str, kopru, is_parcacigi: int = 4) -> float:
     s.model.okunus("Merhaba.")
     _SES = s
     return time.perf_counter() - t0
+
+
+def ayarla(tasiyici_kat: float) -> None:
+    global TASIYICI_KAT
+    TASIYICI_KAT = float(tasiyici_kat)
 
 
 def isit(ses: str, ton: str) -> float:

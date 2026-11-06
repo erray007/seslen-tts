@@ -40,6 +40,7 @@ class MainActivity : Activity() {
     private lateinit var konus: Button
     private lateinit var isp: Spinner
     private lateinit var hizlandirici: Spinner
+    private lateinit var tasiyici: Spinner
     private val IS_PARCACIKLARI = listOf(1, 2, 3, 4, 6, 8)
     private var sesler = listOf<String>()
     @Volatile private var durdur = false
@@ -56,7 +57,7 @@ class MainActivity : Activity() {
         fun dugme(s: String, f: () -> Unit) = Button(this).apply { text = s; textSize = 20f; setOnClickListener { f() } }
         durum = yazi("Hazırlanıyor…").apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         metin = EditText(this).apply {
-            setText("Merhaba! Ben Seslen. Yarın saat 14:30'da toplantımız var, dosyaları hazırladın mı?")
+            setText("Geri düğmesi.")
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 3; textSize = 18f; contentDescription = "Okunacak metin"
         }
@@ -96,6 +97,13 @@ class MainActivity : Activity() {
             setSelection(if (Motor.ayarlar(this@MainActivity).getBoolean("xnnpack", false)) 1 else 0)
             onItemSelectedListener = secildi { yenidenAc() }
         }
+        tasiyici = Spinner(this).apply {
+            contentDescription = "Kısa ifade taşıyıcısı"
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                                   listOf("Kısa ifade: normal", "Kısa ifade: hızlı (yarım süre)"))
+            setSelection(if (Motor.tasiyiciKat(this@MainActivity) < 1.0) 1 else 0)
+            onItemSelectedListener = secildi { i -> isci.execute { Motor.tasiyiciAyarla(this@MainActivity, if (i == 1) 0.5 else 1.0) } }
+        }
         konus = dugme("Konuş") { basla() }.apply { isEnabled = false }
         val dur = dugme("Dur") { durdur = true }
         val ttsAyar = dugme("Metin okuma ayarlarını aç") {
@@ -108,7 +116,7 @@ class MainActivity : Activity() {
         olcum = yazi("").apply { setTextIsSelectable(true); textSize = 15f }
         val not = yazi("Bu ses yapay zekâ ile üretilmiştir. Model: seslen-tts (Mehmet Veysel Delibaş, CC BY-SA 4.0).")
             .apply { textSize = 13f }
-        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, hizlandirici, konus, dur, ttsAyar, bilgi, olcum, not)
+        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, hizlandirici, tasiyici, konus, dur, ttsAyar, bilgi, olcum, not)
             .forEach { k.addView(it) }
         setContentView(ScrollView(this).apply { addView(k) })
     }

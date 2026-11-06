@@ -49,6 +49,7 @@ object Motor {
             isParcacigi = istenenIsParcacigi(c)
             xnnpack = ayarlar(c).getBoolean("xnnpack", false)
             acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnnpack), isParcacigi).toDouble()
+            m.callAttr("ayarla", tasiyiciKat(c))
             py = m
             m
         }
@@ -57,6 +58,15 @@ object Motor {
     /** Ayardaki iş parçacığı sayısı (yoksa en çok 4). Telefonda büyük / küçük çekirdek karışık: en iyisi ölçülür. */
     fun istenenIsParcacigi(c: Context) =
         ayarlar(c).getInt("is_parcacigi", minOf(4, Runtime.getRuntime().availableProcessors()))
+
+    /** Kısa ifade taşıyıcısının süre katı (1 olduğu gibi, 0,5 hızlı). */
+    fun tasiyiciKat(c: Context) = ayarlar(c).getFloat("tasiyici_kat", 1f).toDouble()
+
+    fun tasiyiciAyarla(c: Context, kat: Double) {
+        ayarlar(c).edit().putFloat("tasiyici_kat", kat.toFloat()).apply()
+        py?.callAttr("ayarla", kat)
+        synchronized(onbellek) { onbellek.clear(); onbellekOrnek = 0 }
+    }
 
     /** İş parçacığı ya da hızlandırıcı değişti: oturumlar yeniden açılır (önbellek ve ısınma sıfırlanır). Süre sn. */
     fun yenidenAc(c: Context, n: Int, xnn: Boolean): Double = synchronized(kilit) {
