@@ -176,6 +176,7 @@ Bütün ayarlarıyla stüdyo (16 ses, özdenetim, öğretmen kaydı): [Seslen](h
 | `seslen_tts/model.py` | `SesModeli`: ONNX oturumları, model klasörünü bulma/indirme, soru ezgisi, hizalama |
 | `seslen_tts/__main__.py` | komut satırı (`seslen-tts`) |
 | `hf/README.md`, `hf/yukle.py` | Hugging Face model kartı ve yükleme betiği (varsayılan gizli depo) |
+| `araclar/hiz/` | hız çalışması: ölçüm, çözücü profili, int8 niceleme, mel farkı (bulgular kendi README'sinde) |
 | `tests/test_model.py` | soru ezgisi, hizalama, cümle bölme; model varsa uçtan uca seslendirme |
 
 ```
