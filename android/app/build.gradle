@@ -1,0 +1,48 @@
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "com.chaquo.python"
+}
+
+android {
+    namespace "tr.seslen.deneme"
+    compileSdk 35
+    defaultConfig {
+        applicationId "tr.seslen.deneme"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "0.1"
+        // numpy (Chaquopy) yalnız arm64 ve x86_64 için; telefonlar arm64
+        ndk { abiFilters "arm64-v8a" }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
+}
+
+chaquopy {
+    defaultConfig {
+        version "3.11"
+        buildPython project.property("seslen.python")
+        pip {
+            install "numpy==1.26.2"
+            install "turkce-vurgu[tam]==0.1.2"      // turkce-normalize 0.1.4'ü de kurar; ikisi de saf Python
+        }
+        pyc { src false }
+    }
+    // seslen_tts paketi deponun kökünden olduğu gibi; uygulamaya özgü köprü src/main/python'da
+    sourceSets {
+        main {
+            srcDir "../.."
+            include "seslen_tts/**", "kopru.py"
+            exclude "**/__main__.py"
+        }
+    }
+}
+
+dependencies {
+    implementation "com.microsoft.onnxruntime:onnxruntime-android:1.29.0"
+}
