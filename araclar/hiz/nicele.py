@@ -3,7 +3,7 @@
 NİCELE — çözücünün seçilen Conv'larını int8'e indirir (QDQ, kanal başına ağırlık, MinMax kalibrasyonu
 cikti/cal_*.npz). Girdi cikti/sabit_on.onnx (yama.py sabit + ORT ön işleme; yoksa kurulur).
 
-    python araclar/hiz/nicele.py resblocks.0,resblocks.1,resblocks.2,noise_res cikti/q_guvenli.onnx
+    python araclar/hiz/nicele.py resblocks.0,resblocks.1,resblocks.2,noise_res cikti/q_guvenli.onnx [--gurultu]
 
 06.11.2026, 16 sınama girdisi (kıyas özgün ↔ özgün 0,52 dB; özgün 10,1 sn):
   ilk aşama (resblocks 0-2) + noise_res   0,55 dB   7,9 sn  ×1,28   ← güvenli
@@ -24,7 +24,7 @@ from onnxruntime.quantization import (CalibrationDataReader, CalibrationMethod, 
                                       quantize_static)
 from onnxruntime.quantization.shape_inference import quant_pre_process
 
-from ortak import CIKTI
+from ortak import CIKTI, model_klasoru
 from yama import yamala
 
 
@@ -34,6 +34,21 @@ class _Okur(CalibrationDataReader):
 
     def get_next(self):
         return next(self.v, None)
+
+
+def gurultu_geri(yol: str) -> None:
+    """yama.py sabit'in sıfırladığı kaynak gürültüsünü (RandomNormalLike) geri koyar: kalibrasyon ve karşılaştırma
+    gürültüsüz yapılır, dağıtılan model özgün gibi gürültülü kalır."""
+    from onnx import helper as h
+    ozgun = onnx.load(str(model_klasoru() / "ses.onnx"), load_external_data=False)
+    rn = {n.name: n for n in ozgun.graph.node if n.op_type == "RandomNormalLike"}
+    m = onnx.load(yol)
+    for i, n in enumerate(m.graph.node):
+        if n.op_type == "Sub" and n.name in rn:
+            m.graph.node.remove(n)
+            m.graph.node.insert(i, h.make_node("RandomNormalLike", list(n.input[:1]), list(n.output), name=n.name,
+                                               **{a.name: h.get_attribute_value(a) for a in rn[n.name].attribute}))
+    onnx.save(m, yol)
 
 
 def nicele(desenler: list[str], cikis: str) -> int:
@@ -52,3 +67,6 @@ def nicele(desenler: list[str], cikis: str) -> int:
 
 if __name__ == "__main__":
     print(sys.argv[2], nicele(sys.argv[1].split(","), sys.argv[2]), "Conv")
+    if "--gurultu" in sys.argv:          # dağıtılacak model: gürültü geri
+        gurultu_geri(sys.argv[2])
+        print("gürültü geri kondu")

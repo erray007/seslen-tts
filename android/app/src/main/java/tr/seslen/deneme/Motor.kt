@@ -48,7 +48,7 @@ object Motor {
             val m = Python.getInstance().getModule("kopru")
             isParcacigi = istenenIsParcacigi(c)
             xnnpack = false      // XNNPACK: Xiaomi 17'de RTF 1,57 (işlemci 0,47); seçenek kaldırıldı, kod OrtKopru'da
-            acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnnpack), isParcacigi).toDouble()
+            acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnnpack), isParcacigi, cozucu(c)).toDouble()
             m.callAttr("ayarla", tasiyiciKat(c))
             py = m
             m
@@ -66,15 +66,27 @@ object Motor {
     fun profilCikar(c: Context, metin: String): String = synchronized(kilit) {
         val m = ac(c)
         val kopru = OrtKopru(xnnpack, c.cacheDir.absolutePath)
-        m.callAttr("hazirla", klasor(c).absolutePath, kopru, isParcacigi)
+        m.callAttr("hazirla", klasor(c).absolutePath, kopru, isParcacigi, cozucu(c))
         m.callAttr("ayarla", tasiyiciKat(c))
         val ses = varsayilanSes(c)
         val gen = Python.getInstance().builtins["list"]!!
         repeat(3) { gen.call(m.callAttr("seslendir", metin, ses, "notr", 1.0, 1.0)) }
         val ozet = kopru.profilOzeti("ses") + kopru.profilOzeti("metin")
-        acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnnpack), isParcacigi).toDouble()
+        acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnnpack), isParcacigi, cozucu(c)).toDouble()
         isinan.clear()
-        "Profil ($isParcacigi iş parçacığı, ${if (xnnpack) "XNNPACK" else "işlemci"}):\n$ozet"
+        "Profil ($isParcacigi iş parçacığı, ${cozucu(c)}):\n$ozet"
+    }
+
+    /** Kullanılan çözücü dosyası: ses.onnx ya da int8 kopyası (indirildiyse). */
+    fun cozucu(c: Context): String {
+        val d = ayarlar(c).getString("cozucu", "ses.onnx")!!
+        return if (File(klasor(c), d).exists()) d else "ses.onnx"
+    }
+
+    /** Çözücü değişti: kaydedilir, oturumlar yeniden açılır. Süre sn. */
+    fun cozucuSec(c: Context, dosya: String): Double {
+        ayarlar(c).edit().putString("cozucu", dosya).apply()
+        return yenidenAc(c, isParcacigi, xnnpack)
     }
 
     /** Kısa ifade taşıyıcısının süre katı (1 olduğu gibi, 0,5 hızlı). */
@@ -91,7 +103,7 @@ object Motor {
         ayarlar(c).edit().putInt("is_parcacigi", n).putBoolean("xnnpack", xnn).apply()
         val m = py ?: return ac(c).let { acilisSn }
         isParcacigi = n; xnnpack = xnn
-        acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnn), n).toDouble()
+        acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnn), n, cozucu(c)).toDouble()
         isinan.clear()
         synchronized(onbellek) { onbellek.clear(); onbellekOrnek = 0 }
         acilisSn

@@ -40,6 +40,7 @@ class MainActivity : Activity() {
     private lateinit var konus: Button
     private lateinit var isp: Spinner
     private lateinit var tasiyici: Spinner
+    private lateinit var cozucuSecici: Spinner
     private val IS_PARCACIKLARI = listOf(1, 2, 3, 4, 6, 8)
     private var sesler = listOf<String>()
     @Volatile private var durdur = false
@@ -96,6 +97,13 @@ class MainActivity : Activity() {
             setSelection(if (Motor.tasiyiciKat(this@MainActivity) < 1.0) 1 else 0)
             onItemSelectedListener = secildi { i -> isci.execute { Motor.tasiyiciAyarla(this@MainActivity, if (i == 1) 0.5 else 1.0) } }
         }
+        cozucuSecici = Spinner(this).apply {
+            contentDescription = "Çözücü"
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                                   listOf("Çözücü: özgün", "Çözücü: int8 (hızlı, ~210 MB iner)"))
+            setSelection(if (Motor.cozucu(this@MainActivity) == ModelIndirici.INT8) 1 else 0)
+            onItemSelectedListener = secildi { i -> cozucuDegisti(i) }
+        }
         konus = dugme("Konuş") { basla() }.apply { isEnabled = false }
         val dur = dugme("Dur") { durdur = true }
         val profil = dugme("Profil çıkar") {
@@ -117,7 +125,7 @@ class MainActivity : Activity() {
         olcum = yazi("").apply { setTextIsSelectable(true); textSize = 15f }
         val not = yazi("Bu ses yapay zekâ ile üretilmiştir. Model: seslen-tts (Mehmet Veysel Delibaş, CC BY-SA 4.0).")
             .apply { textSize = 13f }
-        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, tasiyici, konus, dur, profil, ttsAyar, bilgi, olcum, not)
+        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, tasiyici, cozucuSecici, konus, dur, profil, ttsAyar, bilgi, olcum, not)
             .forEach { k.addView(it) }
         setContentView(ScrollView(this).apply { addView(k) })
     }
@@ -125,6 +133,27 @@ class MainActivity : Activity() {
     private fun secildi(f: (Int) -> Unit) = object : AdapterView.OnItemSelectedListener {
         override fun onItemSelected(p: AdapterView<*>?, v: View?, i: Int, id: Long) = f(i)
         override fun onNothingSelected(p: AdapterView<*>?) {}
+    }
+
+    private fun cozucuDegisti(i: Int) {
+        val dosya = if (i == 1) ModelIndirici.INT8 else "ses.onnx"
+        if (!Motor.acik() || dosya == Motor.cozucu(this) && java.io.File(Motor.klasor(this), dosya).exists()) return
+        isci.execute {
+            try {
+                if (i == 1) {
+                    var son = -1L
+                    ModelIndirici.indirInt8(Motor.klasor(this)) { ad, mb, top ->
+                        if (mb / 10 != son / 10 || mb == top) { son = mb; yaz("İndiriliyor: $ad, $mb / $top MB") }
+                    }
+                }
+                yaz("Çözücü değişiyor…")
+                ekle("Çözücü: %s, açılış %.2f sn".format(dosya, Motor.cozucuSec(this, dosya)))
+                ekle("Isınma: %.2f sn".format(Motor.isit(this)))
+                yaz("Hazır.")
+            } catch (e: Throwable) {
+                ekle("Hata: ${e.message}"); yaz("Hata: ${e.message}")
+            }
+        }
     }
 
     /** Hız denemesi seçicileri değişti: model o ayarla yeniden açılır. */

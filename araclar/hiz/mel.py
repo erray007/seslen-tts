@@ -6,11 +6,17 @@ Kıyas çizgisi: özgün modelin kendi iki çalıştırması (kaynak gürültüs
     python araclar/hiz/mel.py cikti/sabit.onnx cikti/q_guvenli.onnx …
 
 Dalga SNR'ı burada işe yaramaz: perde azıcık kayınca faz kayar (yalnız Gemm'i nicelemek bile SNR −2 dB veriyordu).
+
+    python araclar/hiz/mel.py --denetim cikti/d_guvenli.onnx …   # gerçek okunuş + denetim.onnx
+
+--denetim: çözücü gerçek okuma zincirine (SesModeli.konus) takılır; 20 kısa ifade (tasiyici.py) + 4 cümle
+(girdiler.py) × 4 ses × 2 tekrar özdenetim tanıyıcısına dinletilir: birebir oranı, ortalama ceza, süre.
 """
 from __future__ import annotations
 
 import sys
 import time
+from pathlib import Path
 
 import numpy as np
 
@@ -44,7 +50,36 @@ def fark(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.abs(A - B)[np.maximum(A, B) > A.max() - 60].mean())
 
 
-if __name__ == "__main__":
+def denetim(yollar: list[str], tekrar: int = 2) -> None:
+    from girdiler import SINAMA
+    from ortak import M
+    from seslen_tts.denetim import Ozdenetim, Taniyici, normal
+    from tasiyici import IFADELER, SESLER
+    from turkce_vurgu import normallestir
+    sm = M.SesModeli(None, 4)
+    oz = Ozdenetim(sm, Taniyici(sm.klasor, 4))
+    metinler = [(m, normal(normallestir(m))) for m in IFADELER + SINAMA]
+    for yol in [str(model_klasoru() / "ses.onnx")] + yollar:
+        sm.ses = oturum(yol)
+        birebir, ceza, t = 0, [], 0.0
+        for ses in SESLER:
+            stil = sm.stil(ses)
+            for m, ref in metinler:
+                for _ in range(tekrar):
+                    t0 = time.perf_counter()
+                    w = sm.konus(m, stil)
+                    t += time.perf_counter() - t0
+                    c, _, duyulan = oz.dinle(w, M.ORAN, ref)
+                    birebir += duyulan.strip() == ref.strip()
+                    ceza.append(c)
+        n = len(ceza)
+        print(f"{Path(yol).name:22} birebir %{birebir / n * 100:4.1f}  ceza {np.mean(ceza):5.2f}  süre {t:5.1f} sn  ({n})",
+              flush=True)
+
+
+if __name__ == "__main__" and "--denetim" in sys.argv:
+    denetim([a for a in sys.argv[1:] if a != "--denetim"])
+elif __name__ == "__main__":
     testler = [dict(np.load(f)) for f in sorted(CIKTI.glob("test_*.npz"))]
     if not testler:
         sys.exit("önce: python araclar/hiz/girdiler.py")

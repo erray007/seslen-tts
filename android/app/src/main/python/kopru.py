@@ -53,11 +53,11 @@ class _Oturum:
 
 
 class _AndroidModeli(M.SesModeli):
-    def __init__(self, klasor: str, kopru, is_parcacigi: int):
+    def __init__(self, klasor: str, kopru, is_parcacigi: int, cozucu: str = "ses.onnx"):
         k = self.klasor = Path(klasor)
         self.is_parcacigi = is_parcacigi
         kopru.ac("metin", str(k / "metin.onnx"), is_parcacigi)
-        kopru.ac("ses", str(k / "ses.onnx"), is_parcacigi)
+        kopru.ac("ses", str(k / cozucu), is_parcacigi)
         self.metin, self.ses = _Oturum(kopru, "metin"), _Oturum(kopru, "ses")
         v = np.load(k / "stiller.npz")
         self.stiller = {a: v[a].astype(np.float32) for a in v.files}
@@ -82,13 +82,14 @@ class _AndroidModeli(M.SesModeli):
         return r
 
 
-def hazirla(klasor: str, kopru, is_parcacigi: int = 4) -> float:
+def hazirla(klasor: str, kopru, is_parcacigi: int = 4, cozucu: str = "ses.onnx") -> float:
     """Modeli açar, okunuş çeviricisini ısıtır; süre (sn). Sesin doğal hızları (Seslen.dogal_hiz) klasördeki
-    dogal_hiz.json'dan okunur: her (ses, ton) için bir kez ölçülür (6 cümle), sonra diskten."""
+    dogal_hiz.json'dan okunur: her (ses, ton) için bir kez ölçülür (6 cümle), sonra diskten. cozucu: ses.onnx ya da
+    int8 kopyası (araclar/hiz/nicele.py)."""
     global _SES, _HIZ_DOSYASI
     t0 = time.perf_counter()
     s = Seslen.__new__(Seslen)              # Seslen.__init__ onnxruntime ve özdenetim arar; burada gerekmiyor
-    s.model = _AndroidModeli(klasor, kopru, is_parcacigi)
+    s.model = _AndroidModeli(klasor, kopru, is_parcacigi, cozucu)
     s._duygu, s._hiz, s._oz = {}, {}, None
     _HIZ_DOSYASI = Path(klasor) / "dogal_hiz.json"
     try:
