@@ -11,7 +11,7 @@ import java.nio.ByteOrder
  * Python'daki seslen_tts'in ONNX oturumları (kopru.py _Oturum) buraya gelir: Android'de Python onnxruntime yok.
  * Girdi ve çıkışlar ham bayt (yerel bayt sırası) + şekil + tür (0 float32, 1 int64).
  */
-class OrtKopru(private val xnnpack: Boolean = false) {
+class OrtKopru(private val xnnpack: Boolean = false, private val profilKlasoru: String? = null) {
     private val ortam = OrtEnvironment.getEnvironment()
     private val oturumlar = HashMap<String, OrtSession>()
 
@@ -27,8 +27,34 @@ class OrtKopru(private val xnnpack: Boolean = false) {
         } else {
             ayar.setIntraOpNumThreads(isParcacigi)
         }
+        if (profilKlasoru != null) ayar.enableProfiling("$profilKlasoru/$ad")
         oturumlar.remove(ad)?.close()
         oturumlar[ad] = ortam.createSession(yol, ayar)
+    }
+
+    /**
+     * Profili bitirir: işlem türlerine göre süre payı (ilk çalıştırma ısınma sayılıp atlanır). ORT profil dosyası:
+     * [{"cat": "Node", "name": "..._kernel_time", "dur": µs, "args": {"op_name": ...}}, ...]
+     */
+    fun profilOzeti(ad: String, ilkAtla: Int = 1): String {
+        val oturum = oturumlar[ad] ?: return "oturum yok: $ad"
+        val dosya = java.io.File(oturum.endProfiling())
+        val olaylar = org.json.JSONArray(dosya.readText())
+        dosya.delete()
+        val sure = HashMap<String, Long>(); val tane = HashMap<String, Int>()
+        var calisma = 0; var top = 0L
+        for (i in 0 until olaylar.length()) {
+            val e = olaylar.getJSONObject(i)
+            if (e.optString("cat") == "Session" && e.optString("name") == "model_run") calisma++
+            if (calisma < ilkAtla || e.optString("cat") != "Node" || !e.optString("name").endsWith("_kernel_time")) continue
+            val op = e.getJSONObject("args").optString("op_name"); val d = e.optLong("dur")
+            sure[op] = (sure[op] ?: 0L) + d; tane[op] = (tane[op] ?: 0) + 1; top += d
+        }
+        val n = maxOf(1, calisma - ilkAtla)
+        val sb = StringBuilder("$ad: $n çalıştırma, ortalama ${top / n / 1000} ms\n")
+        for ((op, d) in sure.entries.sortedByDescending { it.value }.take(10))
+            sb.append("  %s %%%.1f, %.0f ms\n".format(op, 100.0 * d / maxOf(1L, top), d / n / 1000.0))
+        return sb.toString()
     }
 
     fun calistir(ad: String, adlar: Array<String>, sekiller: Array<LongArray>, turler: IntArray,

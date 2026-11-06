@@ -47,7 +47,7 @@ object Motor {
             if (!Python.isStarted()) Python.start(AndroidPlatform(c.applicationContext))
             val m = Python.getInstance().getModule("kopru")
             isParcacigi = istenenIsParcacigi(c)
-            xnnpack = ayarlar(c).getBoolean("xnnpack", false)
+            xnnpack = false      // XNNPACK: Xiaomi 17'de RTF 1,57 (işlemci 0,47); seçenek kaldırıldı, kod OrtKopru'da
             acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnnpack), isParcacigi).toDouble()
             m.callAttr("ayarla", tasiyiciKat(c))
             py = m
@@ -58,6 +58,24 @@ object Motor {
     /** Ayardaki iş parçacığı sayısı (yoksa en çok 4). Telefonda büyük / küçük çekirdek karışık: en iyisi ölçülür. */
     fun istenenIsParcacigi(c: Context) =
         ayarlar(c).getInt("is_parcacigi", minOf(4, Runtime.getRuntime().availableProcessors()))
+
+    /**
+     * Telefonda profil: oturumlar profilleme açık yeniden açılır, örnek ifade 3 kez (önbelleksiz) üretilir, işlem
+     * türlerine göre süreler döner; sonra oturumlar normal açılır.
+     */
+    fun profilCikar(c: Context, metin: String): String = synchronized(kilit) {
+        val m = ac(c)
+        val kopru = OrtKopru(xnnpack, c.cacheDir.absolutePath)
+        m.callAttr("hazirla", klasor(c).absolutePath, kopru, isParcacigi)
+        m.callAttr("ayarla", tasiyiciKat(c))
+        val ses = varsayilanSes(c)
+        val gen = Python.getInstance().builtins["list"]!!
+        repeat(3) { gen.call(m.callAttr("seslendir", metin, ses, "notr", 1.0, 1.0)) }
+        val ozet = kopru.profilOzeti("ses") + kopru.profilOzeti("metin")
+        acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnnpack), isParcacigi).toDouble()
+        isinan.clear()
+        "Profil ($isParcacigi iş parçacığı, ${if (xnnpack) "XNNPACK" else "işlemci"}):\n$ozet"
+    }
 
     /** Kısa ifade taşıyıcısının süre katı (1 olduğu gibi, 0,5 hızlı). */
     fun tasiyiciKat(c: Context) = ayarlar(c).getFloat("tasiyici_kat", 1f).toDouble()

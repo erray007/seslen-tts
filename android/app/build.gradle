@@ -11,8 +11,8 @@ android {
         applicationId "tr.seslen.deneme"
         minSdk 26
         targetSdk 35
-        versionCode 4
-        versionName "0.4"
+        versionCode 5
+        versionName "0.5"
         // numpy (Chaquopy) yalnız arm64 ve x86_64 için; telefonlar arm64
         ndk { abiFilters "arm64-v8a" }
     }

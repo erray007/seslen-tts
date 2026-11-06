@@ -39,7 +39,6 @@ class MainActivity : Activity() {
     private lateinit var hiz: SeekBar
     private lateinit var konus: Button
     private lateinit var isp: Spinner
-    private lateinit var hizlandirici: Spinner
     private lateinit var tasiyici: Spinner
     private val IS_PARCACIKLARI = listOf(1, 2, 3, 4, 6, 8)
     private var sesler = listOf<String>()
@@ -90,13 +89,6 @@ class MainActivity : Activity() {
             setSelection(maxOf(0, IS_PARCACIKLARI.indexOf(Motor.istenenIsParcacigi(this@MainActivity))))
             onItemSelectedListener = secildi { yenidenAc() }
         }
-        hizlandirici = Spinner(this).apply {
-            contentDescription = "Hızlandırıcı"
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
-                                   listOf("İşlemci (varsayılan)", "XNNPACK"))
-            setSelection(if (Motor.ayarlar(this@MainActivity).getBoolean("xnnpack", false)) 1 else 0)
-            onItemSelectedListener = secildi { yenidenAc() }
-        }
         tasiyici = Spinner(this).apply {
             contentDescription = "Kısa ifade taşıyıcısı"
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
@@ -106,6 +98,15 @@ class MainActivity : Activity() {
         }
         konus = dugme("Konuş") { basla() }.apply { isEnabled = false }
         val dur = dugme("Dur") { durdur = true }
+        val profil = dugme("Profil çıkar") {
+            if (!Motor.acik()) return@dugme
+            val m = metin.text.toString()
+            isci.execute {
+                yaz("Profil çıkarılıyor (3 üretim)…")
+                try { ekle(Motor.profilCikar(this, m)); yaz("Profil hazır.") }
+                catch (e: Throwable) { ekle("Hata: ${e.message}"); yaz("Hata: ${e.message}") }
+            }
+        }
         val ttsAyar = dugme("Metin okuma ayarlarını aç") {
             try { startActivity(Intent("com.android.settings.TTS_SETTINGS")) }
             catch (e: Throwable) { startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
@@ -116,7 +117,7 @@ class MainActivity : Activity() {
         olcum = yazi("").apply { setTextIsSelectable(true); textSize = 15f }
         val not = yazi("Bu ses yapay zekâ ile üretilmiştir. Model: seslen-tts (Mehmet Veysel Delibaş, CC BY-SA 4.0).")
             .apply { textSize = 13f }
-        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, hizlandirici, tasiyici, konus, dur, ttsAyar, bilgi, olcum, not)
+        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, tasiyici, konus, dur, profil, ttsAyar, bilgi, olcum, not)
             .forEach { k.addView(it) }
         setContentView(ScrollView(this).apply { addView(k) })
     }
@@ -129,7 +130,7 @@ class MainActivity : Activity() {
     /** Hız denemesi seçicileri değişti: model o ayarla yeniden açılır. */
     private fun yenidenAc() {
         val n = IS_PARCACIKLARI[isp.selectedItemPosition]
-        val x = hizlandirici.selectedItemPosition == 1
+        val x = false     // XNNPACK telefonda 3 kat yavaştı (Xiaomi 17, 0.4); kaldırıldı
         if (!Motor.acik() || (n == Motor.isParcacigi && x == Motor.xnnpack)) return
         isci.execute {
             val ad = if (x) "XNNPACK" else "işlemci"
