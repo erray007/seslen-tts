@@ -11,14 +11,22 @@ import java.nio.ByteOrder
  * Python'daki seslen_tts'in ONNX oturumları (kopru.py _Oturum) buraya gelir: Android'de Python onnxruntime yok.
  * Girdi ve çıkışlar ham bayt (yerel bayt sırası) + şekil + tür (0 float32, 1 int64).
  */
-class OrtKopru {
+class OrtKopru(private val xnnpack: Boolean = false) {
     private val ortam = OrtEnvironment.getEnvironment()
     private val oturumlar = HashMap<String, OrtSession>()
 
+    /** xnnpack: ARM için optimize Conv / Gemm çekirdekleri (desteklemediği düğümler CPU'da kalır). */
     fun ac(ad: String, yol: String, isParcacigi: Int) {
         val ayar = OrtSession.SessionOptions()
-        ayar.setIntraOpNumThreads(isParcacigi)
         ayar.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+        if (xnnpack) {
+            // XNNPACK kendi iş parçacığı havuzunu kullanır; ORT'ninki 1 olmalı (yoksa ikisi çekirdek için yarışır)
+            ayar.addXnnpack(mapOf("intra_op_num_threads" to isParcacigi.toString()))
+            ayar.setIntraOpNumThreads(1)
+            ayar.addConfigEntry("session.intra_op.allow_spinning", "0")
+        } else {
+            ayar.setIntraOpNumThreads(isParcacigi)
+        }
         oturumlar.remove(ad)?.close()
         oturumlar[ad] = ortam.createSession(yol, ayar)
     }

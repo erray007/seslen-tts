@@ -21,6 +21,8 @@ object Motor {
         private set
     var isParcacigi = 4
         private set
+    var xnnpack = false
+        private set
 
     fun klasor(c: Context) = File(c.filesDir, "model")
     fun indirildi(c: Context) = ModelIndirici.hazir(klasor(c))
@@ -45,7 +47,8 @@ object Motor {
             if (!Python.isStarted()) Python.start(AndroidPlatform(c.applicationContext))
             val m = Python.getInstance().getModule("kopru")
             isParcacigi = istenenIsParcacigi(c)
-            acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(), isParcacigi).toDouble()
+            xnnpack = ayarlar(c).getBoolean("xnnpack", false)
+            acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnnpack), isParcacigi).toDouble()
             py = m
             m
         }
@@ -55,12 +58,12 @@ object Motor {
     fun istenenIsParcacigi(c: Context) =
         ayarlar(c).getInt("is_parcacigi", minOf(4, Runtime.getRuntime().availableProcessors()))
 
-    /** İş parçacığı sayısı değişti: oturumlar yeniden açılır (önbellek ve ısınma sıfırlanır). Süre sn. */
-    fun yenidenAc(c: Context, n: Int): Double = synchronized(kilit) {
-        ayarlar(c).edit().putInt("is_parcacigi", n).apply()
+    /** İş parçacığı ya da hızlandırıcı değişti: oturumlar yeniden açılır (önbellek ve ısınma sıfırlanır). Süre sn. */
+    fun yenidenAc(c: Context, n: Int, xnn: Boolean): Double = synchronized(kilit) {
+        ayarlar(c).edit().putInt("is_parcacigi", n).putBoolean("xnnpack", xnn).apply()
         val m = py ?: return ac(c).let { acilisSn }
-        isParcacigi = n
-        acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(), n).toDouble()
+        isParcacigi = n; xnnpack = xnn
+        acilisSn = m.callAttr("hazirla", klasor(c).absolutePath, OrtKopru(xnn), n).toDouble()
         isinan.clear()
         synchronized(onbellek) { onbellek.clear(); onbellekOrnek = 0 }
         acilisSn

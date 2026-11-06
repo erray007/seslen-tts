@@ -39,6 +39,7 @@ class MainActivity : Activity() {
     private lateinit var hiz: SeekBar
     private lateinit var konus: Button
     private lateinit var isp: Spinner
+    private lateinit var hizlandirici: Spinner
     private val IS_PARCACIKLARI = listOf(1, 2, 3, 4, 6, 8)
     private var sesler = listOf<String>()
     @Volatile private var durdur = false
@@ -86,15 +87,14 @@ class MainActivity : Activity() {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
                                    IS_PARCACIKLARI.map { "$it iş parçacığı" })
             setSelection(maxOf(0, IS_PARCACIKLARI.indexOf(Motor.istenenIsParcacigi(this@MainActivity))))
-            onItemSelectedListener = secildi { i ->
-                val n = IS_PARCACIKLARI[i]
-                if (Motor.acik() && n != Motor.isParcacigi) isci.execute {
-                    yaz("Model $n iş parçacığıyla yeniden açılıyor…")
-                    ekle("Yeniden açılış: %.2f sn, %d iş parçacığı".format(Motor.yenidenAc(this@MainActivity, n), n))
-                    ekle("Isınma: %.2f sn".format(Motor.isit(this@MainActivity)))
-                    yaz("Hazır.")
-                }
-            }
+            onItemSelectedListener = secildi { yenidenAc() }
+        }
+        hizlandirici = Spinner(this).apply {
+            contentDescription = "Hızlandırıcı"
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                                   listOf("İşlemci (varsayılan)", "XNNPACK"))
+            setSelection(if (Motor.ayarlar(this@MainActivity).getBoolean("xnnpack", false)) 1 else 0)
+            onItemSelectedListener = secildi { yenidenAc() }
         }
         konus = dugme("Konuş") { basla() }.apply { isEnabled = false }
         val dur = dugme("Dur") { durdur = true }
@@ -108,7 +108,7 @@ class MainActivity : Activity() {
         olcum = yazi("").apply { setTextIsSelectable(true); textSize = 15f }
         val not = yazi("Bu ses yapay zekâ ile üretilmiştir. Model: seslen-tts (Mehmet Veysel Delibaş, CC BY-SA 4.0).")
             .apply { textSize = 13f }
-        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, konus, dur, ttsAyar, bilgi, olcum, not)
+        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, hizlandirici, konus, dur, ttsAyar, bilgi, olcum, not)
             .forEach { k.addView(it) }
         setContentView(ScrollView(this).apply { addView(k) })
     }
@@ -116,6 +116,24 @@ class MainActivity : Activity() {
     private fun secildi(f: (Int) -> Unit) = object : AdapterView.OnItemSelectedListener {
         override fun onItemSelected(p: AdapterView<*>?, v: View?, i: Int, id: Long) = f(i)
         override fun onNothingSelected(p: AdapterView<*>?) {}
+    }
+
+    /** Hız denemesi seçicileri değişti: model o ayarla yeniden açılır. */
+    private fun yenidenAc() {
+        val n = IS_PARCACIKLARI[isp.selectedItemPosition]
+        val x = hizlandirici.selectedItemPosition == 1
+        if (!Motor.acik() || (n == Motor.isParcacigi && x == Motor.xnnpack)) return
+        isci.execute {
+            val ad = if (x) "XNNPACK" else "işlemci"
+            yaz("Model yeniden açılıyor: $n iş parçacığı, $ad…")
+            try {
+                ekle("Yeniden açılış: %.2f sn, %d iş parçacığı, %s".format(Motor.yenidenAc(this, n, x), n, ad))
+                ekle("Isınma: %.2f sn".format(Motor.isit(this)))
+                yaz("Hazır.")
+            } catch (e: Throwable) {
+                ekle("Hata: ${e.message}"); yaz("Hata: ${e.message}")
+            }
+        }
     }
 
     private fun hizDegeri() = 0.5 + hiz.progress * 0.1
@@ -147,7 +165,8 @@ class MainActivity : Activity() {
                 }
                 konus.isEnabled = true
             }
-            ekle("Açılış: %.2f sn, %d iş parçacığı".format(Motor.acilisSn, Motor.isParcacigi))
+            ekle("Açılış: %.2f sn, %d iş parçacığı, %s".format(Motor.acilisSn, Motor.isParcacigi,
+                                                                if (Motor.xnnpack) "XNNPACK" else "işlemci"))
             yaz("Ses hazırlanıyor…")
             ekle("Isınma: %.2f sn".format(Motor.isit(this)))
             yaz("Hazır.")
