@@ -11,8 +11,8 @@ android {
         applicationId "tr.seslen.deneme"
         minSdk 26
         targetSdk 35
-        versionCode 7
-        versionName "0.7"
+        versionCode 8
+        versionName "0.8-npu"
         // numpy (Chaquopy) yalnız arm64 ve x86_64 için; telefonlar arm64
         ndk { abiFilters "arm64-v8a" }
     }
@@ -44,5 +44,6 @@ chaquopy {
 }
 
 dependencies {
-    implementation "com.microsoft.onnxruntime:onnxruntime-android:1.29.0"
+    // QNN sürümü: tam ORT + Qualcomm QNN (Hexagon NPU) kütüphaneleri (qnn-runtime 2.42)
+    implementation "com.microsoft.onnxruntime:onnxruntime-android-qnn:1.29.0"
 }

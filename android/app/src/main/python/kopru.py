@@ -21,6 +21,7 @@ from seslen_tts.seslen import Seslen
 _TUR = {np.dtype(np.float32): 0, np.dtype(np.int64): 1}
 _SES = None
 _HIZ_DOSYASI: Path | None = None
+_KOPRU = None
 _SURE: dict[str, float] = {}           # aşama süreleri (ms), her cümlede sıfırlanır
 # HIZLI TAŞIYICI: kısa cümlede (model.KISA_SOZCUK) taşıyıcının süresi bu katla çarpılır (1 = olduğu gibi). Taşıyıcı
 # metinde kalır, çözücü daha az üretir. 06.11.2026 (araclar/hiz/tasiyici.py, 4 ses × 20 ifade): ×1/2 birebir %86 /
@@ -86,8 +87,9 @@ def hazirla(klasor: str, kopru, is_parcacigi: int = 4, cozucu: str = "ses.onnx")
     """Modeli açar, okunuş çeviricisini ısıtır; süre (sn). Sesin doğal hızları (Seslen.dogal_hiz) klasördeki
     dogal_hiz.json'dan okunur: her (ses, ton) için bir kez ölçülür (6 cümle), sonra diskten. cozucu: ses.onnx ya da
     int8 kopyası (araclar/hiz/nicele.py)."""
-    global _SES, _HIZ_DOSYASI
+    global _SES, _HIZ_DOSYASI, _KOPRU
     t0 = time.perf_counter()
+    _KOPRU = kopru
     s = Seslen.__new__(Seslen)              # Seslen.__init__ onnxruntime ve özdenetim arar; burada gerekmiyor
     s.model = _AndroidModeli(klasor, kopru, is_parcacigi, cozucu)
     s._duygu, s._hiz, s._oz = {}, {}, None
@@ -132,3 +134,61 @@ def seslendir(metin: str, ses: str, ton: str = "otomatik", hiz: float = 1.0, per
         yield p.cumle, p.ses.astype(np.float32).tobytes(), int(p.sessizlik_ms), p.ton, sure, asama
         _SURE.clear()
         t0 = time.perf_counter()
+
+
+def _doldur(g: dict, L: int, F: int) -> dict:
+    """Çözücü girdisini sabit boyuta sıfırla doldurur (L dolgusu sesi değiştirmez; F dolgusu InstanceNorm ve LSTM
+    yüzünden değiştirir: araclar/hiz, 08.11.2026; bu yalnız hız denemesi)."""
+    l, f = g["hiza"].shape[1], g["hiza"].shape[2]
+    h = dict(g)
+    h["d"] = np.pad(g["d"], ((0, 0), (0, L - l), (0, 0)))
+    h["t_en"] = np.pad(g["t_en"], ((0, 0), (0, 0), (0, L - l)))
+    h["hiza"] = np.pad(g["hiza"], ((0, 0), (0, L - l), (0, F - f)))
+    h["egri"] = np.pad(g["egri"], ((0, 0), (0, L - l)))
+    return h
+
+
+def npu_dene(metin: str, ses: str, cozucu: str, is_parcacigi: int, tekrar: int = 5) -> str:
+    """NPU hız denemesi: metnin çözücü girdisi sabit boyuta (L, F) doldurulur; aynı girdi işlemcide ve Hexagon
+    NPU'da (QNN HTP) tekrar kez çalıştırılır. Sonuç metni (süreler ms)."""
+    yakalanan = []
+    asil = _SES.model.ses
+
+    class _Yakala:
+        def run(self, c, g):
+            yakalanan.append(g)
+            return asil.run(c, g)
+    _SES.model.ses = _Yakala()
+    try:
+        _SES.model.konus(metin, _SES.model.stil(ses, "notr"))
+    finally:
+        _SES.model.ses = asil
+    g = yakalanan[-1]
+    l, f = g["hiza"].shape[1], g["hiza"].shape[2]
+    L = 128 if l <= 128 else 256
+    F = next(b for b in (256, 512, 1024, 2048) if b >= f)
+    gd = _doldur(g, L, F)
+    yol = str(_SES.model.klasor / cozucu)
+    satir = [f"Girdi: L {l} → {L}, F {f} → {F} ({F * 600 / 24000:.1f} sn ses)"]
+    for ad, npu in (("işlemci", False), ("NPU", True)):
+        t0 = time.perf_counter()
+        try:
+            _KOPRU.acNpu("npu", yol, L, F, npu, is_parcacigi)
+        except Exception as e:                                  # QNN açılamadı
+            satir.append(f"{ad}: açılamadı: {str(e)[:300]}")
+            continue
+        acilis = (time.perf_counter() - t0) * 1000
+        o = _Oturum(_KOPRU, "npu")
+        sureler = []
+        try:
+            for _ in range(tekrar + 1):
+                t0 = time.perf_counter()
+                o.run(None, gd)
+                sureler.append((time.perf_counter() - t0) * 1000)
+        except Exception as e:
+            satir.append(f"{ad}: çalışmadı: {str(e)[:300]}")
+            continue
+        s = sorted(sureler[1:])
+        satir.append(f"{ad}: açılış {acilis:.0f} ms, ilk {sureler[0]:.0f} ms, ortanca {s[len(s) // 2]:.0f} ms, "
+                     f"en iyi {s[0]:.0f} ms")
+    return "\n".join(satir)

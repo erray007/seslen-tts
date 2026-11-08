@@ -108,6 +108,15 @@ class MainActivity : Activity() {
         konus = dugme("Konuş") { basla() }.apply { isEnabled = false }
         val dur = dugme("Dur") { durdur = true }
         int8Guncelle = dugme("int8 çözücüyü güncelle") { int8Indir(true) }.apply { visibility = View.GONE }
+        val npu = dugme("NPU denemesi") {
+            if (!Motor.acik()) return@dugme
+            val m = metin.text.toString()
+            isci.execute {
+                yaz("NPU denemesi (işlemci ve NPU, ilk açılış uzun sürebilir)…")
+                try { ekle("NPU denemesi:\n" + Motor.npuDene(this, m)); yaz("NPU denemesi bitti.") }
+                catch (e: Throwable) { ekle("Hata: ${e.message}"); yaz("Hata: ${e.message}") }
+            }
+        }
         val profil = dugme("Profil çıkar") {
             if (!Motor.acik()) return@dugme
             val m = metin.text.toString()
@@ -127,7 +136,7 @@ class MainActivity : Activity() {
         olcum = yazi("").apply { setTextIsSelectable(true); textSize = 15f }
         val not = yazi("Bu ses yapay zekâ ile üretilmiştir. Model: seslen-tts (Mehmet Veysel Delibaş, CC BY-SA 4.0).")
             .apply { textSize = 13f }
-        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, tasiyici, cozucuSecici, konus, dur, int8Guncelle, profil, ttsAyar, bilgi, olcum, not)
+        listOf(durum, metin, yazi("Ses"), ses, yazi("Ton"), ton, hizYazi, hiz, yazi("Hız denemesi"), isp, tasiyici, cozucuSecici, konus, dur, int8Guncelle, npu, profil, ttsAyar, bilgi, olcum, not)
             .forEach { k.addView(it) }
         setContentView(ScrollView(this).apply { addView(k) })
     }

@@ -77,6 +77,11 @@ object Motor {
         "Profil ($isParcacigi iş parçacığı, ${cozucu(c)}):\n$ozet"
     }
 
+    /** NPU hız denemesi (kopru.npu_dene): aynı sabit boyutlu girdi işlemcide ve Hexagon NPU'da. */
+    fun npuDene(c: Context, metin: String): String = synchronized(kilit) {
+        ac(c).callAttr("npu_dene", metin, varsayilanSes(c), cozucu(c), isParcacigi).toString()
+    }
+
     /** Kullanılan çözücü dosyası: int8 kopyası (indirildiyse; varsayılan, telefonda 1,46 kat hızlı ve kulakla aynı)
      *  ya da ses.onnx. */
     fun cozucu(c: Context): String {

@@ -5,6 +5,8 @@
         android:label="Seslen Deneme"
         android:theme="@android:style/Theme.DeviceDefault"
         android:extractNativeLibs="true">
+        <!-- Hexagon NPU (QNN HTP): Android 12+ uygulamaların DSP kütüphanesini istemesi gerekiyor -->
+        <uses-native-library android:name="libcdsprpc.so" android:required="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

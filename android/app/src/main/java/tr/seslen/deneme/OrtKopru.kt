@@ -12,6 +12,22 @@ import java.nio.ByteOrder
  * Girdi ve çıkışlar ham bayt (yerel bayt sırası) + şekil + tür (0 float32, 1 int64).
  */
 class OrtKopru(private val xnnpack: Boolean = false, private val profilKlasoru: String? = null) {
+    /**
+     * NPU denemesi: oturum Qualcomm QNN (Hexagon HTP) ile açılır; NPU sabit boyut ister, L ve F sabitlenir. Float
+     * düğümler HTP'de fp16 çalışır; QNN'nin desteklemediği düğümler (RandomNormalLike) işlemcide kalır.
+     */
+    fun acNpu(ad: String, yol: String, L: Long, F: Long, npu: Boolean, isParcacigi: Int) {
+        val ayar = OrtSession.SessionOptions()
+        ayar.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+        ayar.setSymbolicDimensionValue("L", L)
+        ayar.setSymbolicDimensionValue("F", F)
+        ayar.setIntraOpNumThreads(isParcacigi)
+        if (npu) ayar.addQnn(mapOf("backend_type" to "htp", "htp_performance_mode" to "burst",
+                                   "enable_htp_fp16_precision" to "1", "htp_graph_finalization_optimization_mode" to "3"))
+        oturumlar.remove(ad)?.close()
+        oturumlar[ad] = ortam.createSession(yol, ayar)
+    }
+
     private val ortam = OrtEnvironment.getEnvironment()
     private val oturumlar = HashMap<String, OrtSession>()
 
