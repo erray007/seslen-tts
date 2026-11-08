@@ -16,7 +16,7 @@ class OrtKopru(private val xnnpack: Boolean = false, private val profilKlasoru: 
      * NPU denemesi: oturum Qualcomm QNN (Hexagon HTP) ile açılır; NPU sabit boyut ister, L ve F sabitlenir. Float
      * düğümler HTP'de fp16 çalışır; QNN'nin desteklemediği düğümler (RandomNormalLike) işlemcide kalır.
      */
-    fun acNpu(ad: String, yol: String, L: Long, F: Long, npu: Boolean, isParcacigi: Int) {
+    fun acNpu(ad: String, yol: String, L: Long, F: Long, npu: Boolean, isParcacigi: Int, kati: Boolean = false) {
         val ayar = OrtSession.SessionOptions()
         ayar.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
         ayar.setSymbolicDimensionValue("L", L)
@@ -24,6 +24,8 @@ class OrtKopru(private val xnnpack: Boolean = false, private val profilKlasoru: 
         ayar.setIntraOpNumThreads(isParcacigi)
         if (npu) ayar.addQnn(mapOf("backend_type" to "htp", "htp_performance_mode" to "burst",
                                    "enable_htp_fp16_precision" to "1", "htp_graph_finalization_optimization_mode" to "3"))
+        // katı: QNN'nin almadığı düğüm işlemciye bırakılmaz, oturum açılmaz ve hata hangi düğümler olduğunu söyler
+        if (kati) ayar.addConfigEntry("session.disable_cpu_ep_fallback", "1")
         oturumlar.remove(ad)?.close()
         oturumlar[ad] = ortam.createSession(yol, ayar)
     }

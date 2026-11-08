@@ -170,6 +170,11 @@ def npu_dene(metin: str, ses: str, cozucu: str, is_parcacigi: int, tekrar: int =
     gd = _doldur(g, L, F)
     yol = str(_SES.model.klasor / cozucu)
     satir = [f"Girdi: L {l} → {L}, F {f} → {F} ({F * 600 / 24000:.1f} sn ses)"]
+    try:                                     # QNN'nin almadığı düğümler: işlemciye bırakılmadan açmayı dene
+        _KOPRU.acNpu("npu", yol, L, F, True, is_parcacigi, True)
+        satir.append("NPU (katı): bütün düğümler NPU'da")
+    except Exception as e:
+        satir.append(f"NPU (katı): {str(e)[:1500]}")
     for ad, npu in (("işlemci", False), ("NPU", True)):
         t0 = time.perf_counter()
         try:
