@@ -6,10 +6,11 @@ kısmen int8'e indirilmiş kopyası (Android deneme uygulaması bunu indirir). G
 
     cat ses_int8.onnx.p* > ses_int8.onnx
 
-Nasıl üretildi: `hiz-calismasi` dalında `araclar/hiz/nicele.py resblocks.0,resblocks.1,resblocks.2,resblocks.3,noise_res
-cikti/d_g3.onnx --gurultu` (QDQ, kanal başına int8 ağırlık, MinMax kalibrasyon, 36 Conv; kaynak gürültüsü özgün gibi).
-Ölçü (06.11.2026): log-mel farkı 0,63 dB (özgün ↔ özgün 0,52); özdenetim tanıyıcısıyla 192 okumada birebir %83,9
-(özgün %84,4); işlemcide ~1,26 kat hızlı.
+Nasıl üretildi (sürüm 2): `hiz-calismasi` dalında `araclar/hiz/nicele.py`; resblocks 0-3 ve noise_res'in bütün
+Conv'ları, resblocks 4-5'in son Conv'u (convs2.2, nicelemeye hassas) dışındakiler: 46 Conv, QDQ, kanal başına int8
+ağırlık, MinMax kalibrasyon; kaynak gürültüsü özgün gibi. Ölçü (06.11.2026): özdenetim tanıyıcısıyla 192 okumada
+birebir %85,9 (özgün %85,9), log-mel farkı 0,85 dB (özgün ↔ özgün 0,52), işlemcide ~1,42 kat hızlı. Sürüm 1 (36 Conv,
+%83,3, ×1,26) git geçmişinde değil: dal yeniden kuruldu.
 
 **Lisans:** model ağırlıkları CC BY-SA 4.0. Özgün model: seslen-tts, Mehmet Veysel Delibaş (seslen-tr). Bu türev de
 CC BY-SA 4.0'dır. Üretilen sesin yapay zekâ sesi olduğu dinleyiciye belirtilmelidir; gerçek bir kişiyi taklit etmek,
