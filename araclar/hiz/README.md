@@ -24,7 +24,10 @@ Ara dosyalar `araclar/hiz/cikti/` altında (git dışında).
 | Çözücü profili (`profil.py`) | Conv %57, Sin %19, InstanceNorm %6, ConvTranspose %5 |
 | Sin (`mikro.py`) | ORT'de tek iş parçacığında; Mul 4 iş parçacığında 2,7 kat hızlanıyor |
 | **int8, güvenli** (`nicele.py`) | resblocks 0-2 + noise_res: **×1,28, mel farkı 0,55 dB** (kıyas 0,52) |
-| int8, + resblocks.3 | ×1,38, 0,63 dB; tanıyıcıyla 192 okumada birebir %83,9 (özgün %84,4). **Dağıtılan:** `model-int8` dalı |
+| int8, + resblocks.3 | ×1,38, 0,63 dB; tanıyıcıyla 192 okumada birebir %83,9 (özgün %84,4); `model-int8` sürüm 1 |
+| **int8, + resblocks 4-5 (convs2.2 hariç)** | 46 Conv, 0,85 dB, tanıyıcıyla %85,9 (özgün %85,9), ×1,42; **`model-int8` sürüm 2** |
+| Duyarlılık (`nicele.py --tara`) | resblocks 4-5'te yalnız her bloğun son Conv'u (convs2.2) hassas: 0,81 / 0,76 dB, ötekiler 0,63-0,67 |
+| Telefonda int8 (sürüm 1) | çözücü 785 → 536 ms (×1,46); nicelenen Conv ~310 → 61 ms (QLinearConv, ~5 kat); kulakla fark yok |
 | Açılış | 0,97 sn; önceden eniyilenmiş .ort ile 0,74 sn (değmez) |
 | `Seslen.dogal_hiz` | yeni (ses, ton) başına ilk cümleden önce ~190 ms (+ okunuş) |
 | Kısa cümle taşıyıcısı (`tasiyici.py`) | 2 sözcüklük ifade 3 sözcüklükten 2 kat yavaş; yarım süreli taşıyıcı 674 → 479 ms, birebir %89 → %86 |
